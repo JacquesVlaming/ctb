@@ -55,6 +55,12 @@ def run_validate_env_exists(envfile=env("ENVFILE")):
 def run_validate_skaffold_installed():
     try:
         exitcode, out, err = cmd("skaffold version", False)
+
+        # Decode bytes to string if needed
+        if isinstance(out, bytes):
+            out = out.decode("utf-8").strip()
+
+        # Check if output starts with "v"
         return out.startswith("v")
     except:
         return False
