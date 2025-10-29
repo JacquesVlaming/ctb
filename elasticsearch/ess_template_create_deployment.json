@@ -16,7 +16,7 @@
                 "master": true,
                 "ingest": true
               },
-              "instance_configuration_id": "gcp.data.highcpu.1",
+              "instance_configuration_id": "gcp.es.datahot.n2.68x16x45",
               "zone_count": 3,
               "size": {
                 "resource": "memory",
