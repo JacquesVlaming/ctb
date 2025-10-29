@@ -114,17 +114,19 @@ def run():
     required_context = "gke_{}_{}_ctb-{}".format(env("GCP_PROJECT_NAME"), env("GCP_REGION_NAME"), env("DEPLOYMENT_NAME"))
     sys.stdout.write("  kubectl context: ")
     sys.stdout.flush()
+    if isinstance(current_context, bytes):
+        current_context = current_context.decode("utf-8")
     if current_context == required_context:
-        sys.stdout.write(colored(current_context, "green", attrs=["bold",]))
+        sys.stdout.write(colored(current_context, "green", attrs=["bold"]))
         sys.stdout.write("\n")
         sys.stdout.flush()
     elif not current_context.startswith("gke_"):
-        sys.stdout.write(colored("unknown", "yellow", attrs=["bold",]))
+        sys.stdout.write(colored("unknown", "yellow", attrs=["bold"]))
         sys.stdout.write("\n")
         sys.stdout.flush()
     else:
-        sys.stdout.write(colored(current_context, "yellow", attrs=["bold",]))
-        sys.stdout.write(" (expected: {})".format(colored(required_context, "white", attrs=["bold",])))
+        sys.stdout.write(colored(current_context, "yellow", attrs=["bold"]))
+        sys.stdout.write(" (expected: {})".format(colored(required_context, "white", attrs=["bold"])))
         sys.stdout.write("\n")
         sys.stdout.flush()
     report("gcloud installed", run_validate_gcloud_installed)
