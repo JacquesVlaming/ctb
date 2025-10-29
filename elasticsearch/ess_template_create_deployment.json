@@ -6,102 +6,178 @@
   "resources": {
     "elasticsearch": [
       {
-        "region": "$ELASTIC_CLOUD_REGION",
+        "region": "gcp-us-central1",
         "ref_id": "main-elasticsearch",
         "plan": {
           "cluster_topology": [
             {
-              "node_type": {
-                "data": true,
-                "master": true,
-                "ingest": true
+              "zone_count": 2,
+              "elasticsearch": {
+                "node_attributes": {
+                  "data": "hot"
+                }
               },
               "instance_configuration_id": "gcp.es.datahot.n2.68x16x45",
-              "zone_count": 3,
+              "node_roles": [
+                "master",
+                "ingest",
+                "transform",
+                "data_hot",
+                "remote_cluster_client",
+                "data_content"
+              ],
+              "id": "hot_content",
               "size": {
-                "resource": "memory",
-                "value": 16384
-              },
-              "elasticsearch": {
-                "enabled_built_in_plugins": []
+                "value": 4096,
+                "resource": "memory"
               }
             },
             {
-              "node_type": {
-                "data": false,
-                "master": false,
-                "ingest": false,
-                "ml": true
-              },
-              "instance_configuration_id": "gcp.ml.1",
               "zone_count": 2,
+              "elasticsearch": {
+                "node_attributes": {
+                  "data": "warm"
+                }
+              },
+              "instance_configuration_id": "gcp.es.datawarm.n2.68x10x190",
+              "node_roles": [
+                "data_warm",
+                "remote_cluster_client"
+              ],
+              "id": "warm",
               "size": {
                 "resource": "memory",
-                "value": 2048
-              },
+                "value": 0
+              }
+            },
+            {
+              "zone_count": 1,
               "elasticsearch": {
-                "enabled_built_in_plugins": []
+                "node_attributes": {
+                  "data": "cold"
+                }
+              },
+              "instance_configuration_id": "gcp.es.datacold.n2.68x10x190",
+              "node_roles": [
+                "data_cold",
+                "remote_cluster_client"
+              ],
+              "id": "cold",
+              "size": {
+                "resource": "memory",
+                "value": 0
+              }
+            },
+            {
+              "zone_count": 1,
+              "elasticsearch": {
+                "node_attributes": {
+                  "data": "frozen"
+                }
+              },
+              "instance_configuration_id": "gcp.es.datafrozen.n2.68x10x95",
+              "node_roles": [
+                "data_frozen"
+              ],
+              "id": "frozen",
+              "size": {
+                "resource": "memory",
+                "value": 0
+              }
+            },
+            {
+              "zone_count": 3,
+              "instance_configuration_id": "gcp.es.master.n2.68x32x45",
+              "node_roles": [
+                "master",
+                "remote_cluster_client"
+              ],
+              "id": "master",
+              "size": {
+                "resource": "memory",
+                "value": 0
+              }
+            },
+            {
+              "zone_count": 2,
+              "instance_configuration_id": "gcp.es.coordinating.n2.68x16x45",
+              "node_roles": [
+                "ingest",
+                "remote_cluster_client"
+              ],
+              "id": "coordinating",
+              "size": {
+                "resource": "memory",
+                "value": 0
+              }
+            },
+            {
+              "zone_count": 1,
+              "instance_configuration_id": "gcp.es.ml.n2.68x32x45",
+              "node_roles": [
+                "ml",
+                "remote_cluster_client"
+              ],
+              "id": "ml",
+              "size": {
+                "resource": "memory",
+                "value": 0
               }
             }
           ],
           "elasticsearch": {
-            "version": "$ELASTICSEARCH_VERSION"
+            "version": "8.17.1",
+            "enabled_built_in_plugins": []
           },
           "deployment_template": {
-            "id": "gcp-compute-optimized"
+            "id": "gcp-general-purpose-v3"
           }
-        },
-        "settings": {
-          "dedicated_masters_threshold": 6
         }
       }
     ],
     "kibana": [
       {
-        "region": "$ELASTIC_CLOUD_REGION",
         "elasticsearch_cluster_ref_id": "main-elasticsearch",
-        "ref_id": "main-kibana",
+        "region": "gcp-us-central1",
         "plan": {
           "cluster_topology": [
             {
-              "instance_configuration_id": "gcp.kibana.1",
-              "zone_count": 2,
-              "size": {
-                "resource": "memory",
-                "value": 2048
-              }
-            }
-          ],
-          "kibana": {
-            "version": "$ELASTICSEARCH_VERSION",
-            "user_settings_yaml": "server.defaultRoute: /app/observability"
-          }
-        }
-      }
-    ],
-    "apm": [
-      {
-        "region": "$ELASTIC_CLOUD_REGION",
-        "elasticsearch_cluster_ref_id": "main-elasticsearch",
-        "ref_id": "main-apm",
-        "plan": {
-          "cluster_topology": [
-            {
-              "instance_configuration_id": "gcp.apm.1",
-              "zone_count": 2,
+              "instance_configuration_id": "gcp.kibana.n2.68x32x45",
+              "zone_count": 1,
               "size": {
                 "resource": "memory",
                 "value": 1024
               }
             }
           ],
-          "apm": {
-            "version": "$ELASTICSEARCH_VERSION",
-            "user_settings_yaml": "apm-server.ilm:\n  enabled: true\n  setup:\n    mapping:\n      - event_type: error\n        policy_name: apm-policy\n      - event_type: span\n        policy_name: apm-policy\n      - event_type: transaction\n        policy_name: apm-policy\n      - event_type: metric\n        policy_name: apm-policy\n      - event_type: profile\n        policy_name: apm-policy\n    enabled: true\n    policies:\n      - name: apm-policy\n        policy:\n          phases:\n            hot:\n              min_age: 0ms\n              actions:\n                rollover:\n                  max_size: 20gb\n                  max_age: 2h\n            delete:\n              min_age: 8h\n              actions:\n                delete: {}"
+          "kibana": {
+            "version": "8.17.1"
           }
-        }
+        },
+        "ref_id": "main-kibana"
       }
     ],
-    "enterprise_search": []
+    "integrations_server": [
+      {
+        "elasticsearch_cluster_ref_id": "main-elasticsearch",
+        "region": "gcp-us-central1",
+        "plan": {
+          "cluster_topology": [
+            {
+              "instance_configuration_id": "gcp.integrationsserver.n2.68x32x45",
+              "zone_count": 1,
+              "size": {
+                "resource": "memory",
+                "value": 1024
+              }
+            }
+          ],
+          "integrations_server": {
+            "version": "8.17.1"
+          }
+        },
+        "ref_id": "main-integrations_server"
+      }
+    ]
   }
 }
