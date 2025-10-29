@@ -111,6 +111,9 @@
           "elasticsearch": {
             "version": "8.17.1",
             "enabled_built_in_plugins": []
+          },
+          "deployment_template": {
+            "id": "gcp-general-purpose"
           }
         }
       }
