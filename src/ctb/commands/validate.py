@@ -62,6 +62,11 @@ def run_validate_skaffold_installed():
 def run_validate_gcloud_installed():
     try:
         exitcode, out, err = cmd("gcloud version", False)
+
+        # Decode bytes to string if needed
+        if isinstance(out, bytes):
+            out = out.decode("utf-8").strip()
+
         return out.startswith("Google Cloud SDK")
     except:
         return False
