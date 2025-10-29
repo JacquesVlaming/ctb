@@ -33,7 +33,7 @@
                 "ingest": false,
                 "ml": true
               },
-              "instance_configuration_id": "gcp.ml.1",
+              "instance_configuration_id": "gcp.ml.n2",
               "zone_count": 2,
               "size": {
                 "resource": "memory",
