@@ -77,14 +77,21 @@ def run_validate_docker_running():
     try:
         exitcode, out, err = cmd("docker ps -q", False)
 
-        # Decode bytes to string if needed
+        # Decode bytes to string
         if isinstance(out, bytes):
-            out = out.decode("utf-8").strip()  # strip removes trailing newline
+            out = out.decode("utf-8").strip()
 
-        # Return True if output is empty (no containers) or matches container IDs
-        return bool(re.match(r"^[a-f0-9]+$", out)) or out == ""
+        if not out:
+            # No containers running
+            return True
+
+        # Only valid container IDs
+        return all(re.match(r"^[a-f0-9]+$", line) for line in out.splitlines())
+
     except:
+        # Any exception (like Docker not running) → False
         return False
+
 
 def run_validate_docker_installed():
     try:
