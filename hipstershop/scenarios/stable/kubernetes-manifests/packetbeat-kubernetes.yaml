@@ -1,0 +1,226 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: packetbeat-config
+  namespace: kube-system
+  labels:
+    k8s-app: packetbeat
+data:
+  packetbeat.yml: |-
+    setup:
+      dashboards:
+        enabled: true
+      ilm:
+        enabled: true
+        overwrite: true
+        policy_file: /etc/ilm_policy.json
+      template:
+        enabled: true
+        overwrite: true
+        settings:
+          index:
+            number_of_shards: 1
+            number_of_replicas: 2
+    packetbeat.interfaces.device: any
+    packetbeat.protocols:
+    - type: dns
+      ports: [53]
+      include_authorities: true
+      include_additionals: true
+    - type: http
+      ports: [80, 8000, 3000, 6000, 7000, 8000, 8080, 9000, 10000, 11000]
+    - type: tls
+      ports: [9243]
+    - type: redis
+      ports: [6379]
+    packetbeat.flows:
+      timeout: 30s
+      period: 10s
+    processors:
+      - add_kubernetes_metadata:
+      - add_cloud_metadata:
+      - add_host_metadata:
+      - add_docker_metadata:
+      - drop_fields:
+          fields: ["host.name"]
+          ignore_missing: true
+      - copy_fields:
+          fields:
+            - from: kubernetes.node.name
+              to: host.name
+          fail_on_error: false
+          ignore_missing: true
+      - copy_fields:
+          fields:
+            - from: message
+              to: log.message
+          fail_on_error: false
+          ignore_missing: true
+    output.elasticsearch:
+      hosts: ['${ELASTICSEARCH_URL}']
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+      workers: 2
+    setup.kibana:
+      host: "${KIBANA_URL}"
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+  ilm_policy.json: |-
+    {
+      "policy": {
+        "phases": {
+          "hot": {
+            "min_age": "0ms",
+            "actions": {
+              "rollover": {
+                "max_age": "2h",
+                "max_size": "20gb"
+              }
+            }
+          },
+          "delete": {
+            "min_age": "8h",
+            "actions": {
+              "delete": {}
+            }
+          }
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: packetbeat
+  namespace: kube-system
+  labels:
+    k8s-app: packetbeat
+    app: beat
+spec:
+  selector:
+    matchLabels:
+      k8s-app: packetbeat
+  template:
+    metadata:
+      labels:
+        k8s-app: packetbeat
+        app: beat
+    spec:
+      serviceAccountName: packetbeat
+      terminationGracePeriodSeconds: 30
+      hostNetwork: false
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: packetbeat
+        image: docker.elastic.co/beats/packetbeat:7.12.0
+        imagePullPolicy: Always
+        args: [
+          "-c", "/etc/packetbeat.yml",
+          "-e"
+        ]
+        env:
+        - name: ELASTICSEARCH_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_URL
+        - name: ELASTICSEARCH_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_USERNAME
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_PASSWORD
+        - name: KIBANA_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: KIBANA_URL
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          runAsUser: 0
+          capabilities:
+            add:
+            - NET_ADMIN
+        volumeMounts:
+        - name: config
+          mountPath: /etc/packetbeat.yml
+          readOnly: true
+          subPath: packetbeat.yml
+        - name: config
+          mountPath: /etc/ilm_policy.json
+          readOnly: true
+          subPath: ilm_policy.json
+        - name: dockersock
+          mountPath: /var/run
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 0600
+          name: packetbeat-config
+      - name: dockersock
+        hostPath:
+          path: /var/run
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: packetbeat
+  namespace: kube-system
+  labels:
+    k8s-app: packetbeat
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: packetbeat
+  namespace: kube-system
+subjects:
+- kind: ServiceAccount
+  name: packetbeat
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: packetbeat
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: packetbeat
+  namespace: kube-system
+  labels:
+    k8s-app: packetbeat
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - namespaces
+  - events
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources:
+  - replicasets
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources:
+  - statefulsets
+  - deployments
+  - replicasets
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - ""
+  resources:
+  - nodes/stats
+  verbs:
+  - get

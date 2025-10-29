@@ -1,0 +1,38 @@
+{
+	"params": {
+    "numTimes" : "$THRESHOLD",
+    "timerangeUnit" : "m",
+    "timerangeCount" : 1,
+    "shouldCheckStatus" : true,
+    "shouldCheckAvailability" : false,
+    "availability" : {
+      "range" : 30,
+      "rangeUnit" : "d",
+      "threshold" : "99"
+    },
+    "filters": {
+      "url.port": [],
+      "observer.geo.name": [],
+      "monitor.type": [],
+      "tags": []
+    },
+    "search" : "monitor.name : \"$MONITOR_NAME\""
+	},
+	"consumer": "uptime",
+	"alertTypeId": "xpack.uptime.alerts.monitorStatus",
+	"schedule": {
+		"interval": "10s"
+	},
+  "throttle": "5m",
+	"actions": [{
+		"id": "$SLACK_ACTION_ID",
+		"actionTypeId": ".slack",
+    "group" : "xpack.uptime.alerts.actionGroups.monitorStatus",
+		"params": {
+      "message" : "$ALERT_MESSAGE"
+		}
+	}],
+	"tags": ["uptime", "monitor.name:$MONITOR_NAME"],
+	"name": "Synthetics Failures - $SERVICE_NAME",
+  "enabled": false
+}

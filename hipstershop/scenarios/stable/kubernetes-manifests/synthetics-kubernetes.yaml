@@ -1,0 +1,392 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: synthetics-config
+  namespace: kube-system
+  labels:
+    k8s-app: synthetics
+data:
+  heartbeat.yml: |-
+    setup:
+      dashboards:
+        enabled: false
+      ilm:
+        enabled: true
+        overwrite: true
+        policy_file: /etc/ilm_policy.json
+      template:
+        enabled: true
+        overwrite: true
+        settings:
+          index:
+            number_of_shards: 1
+            number_of_replicas: 2
+    seccomp.enabled: false
+    heartbeat.monitors:
+      - type: browser
+        id: synthetics-view-home
+        name: synthetics-view-home
+        schedule: "@every 1m"
+        source:
+          inline:
+            script: |-
+
+              step("View home", async () => {
+
+                // Load the home page.
+                await page.goto(process.env.FRONTEND_URL);
+
+                // Check if the title is correct.
+                const expected = "One-stop for Hipster Fashion & Style Online";
+                const actual = (await page.innerText('h1'));
+                if (expected !== actual)
+                  throw Error(
+                    "The title of the home page differs from what was expected." + "\n\n" +
+                    "Expected: " + expected + "\n" +
+                    "Actual: " + actual
+                  );
+              });
+      - type: browser
+        id: synthetics-checkout
+        name: synthetics-checkout
+        schedule: "@every 1m"
+        source:
+          inline:
+            script: |-
+
+              step("View Home", async () => {
+
+                // Load the home page.
+                await page.goto(process.env.FRONTEND_URL);
+              });
+
+              step("Click first product", async () => {
+
+                // Get the name of first product.
+                var s = 'h5.card-title';
+                const expected = (await page.innerText(s));
+
+                // Click the first product to view it.
+                var s = '.card';
+                await page.click(s);
+
+                // Check if the name of displayed product matches
+                // the name of the clicked product.
+                var s = 'h2';
+                const actual = (await page.innerText(s));
+                if (expected !== actual)
+                  throw Error(
+                    "The displayed product differs from the selected product." + "\n\n" +
+                    "Expected: " + expected + "\n" +
+                    "Actual: " + actual
+                  );
+              });
+
+              step("Add to cart", async () => {
+
+                // Get the name of the displayed product.
+                var s = 'h2';
+                const expectedName = (await page.innerText(s));
+
+                // Click the "Add to Cart" button.
+                var s = 'button[type=submit]';
+                await page.click(s);
+
+                // Check if the name of the product in the cart matches
+                // the name of the selected product.
+                var s = '.col.align-middle strong';
+                const actualName = (await page.innerText(s));
+                if (expectedName !== actualName)
+                  throw Error(
+                    "The product in the cart differs from the selected product." + "\n\n" +
+                    "Expected: " + expectedName + "\n" +
+                    "Actual: " + actualName
+                  );
+
+                // Check if the quantity is correct.
+                var s = '.col.text-left';
+                const actualQuantity = (await page.innerText(s)).split("\n")[0];
+                if (!actualQuantity.match(/\s+1$/))
+                  throw Error(
+                    "The quantity in the cart differs from quantity selected." + "\n\n" +
+                    "Expected: 1\n" +
+                    "Actual: " + actualQuantity
+                  );
+              });
+
+              step("Place order", async () => {
+
+                // Get the total cost of the order.
+                var s = '.col.text-center > strong';
+                const expectedCost = (await page.innerText(s));
+
+                // Click the "Place your order" button.
+                var s = 'form[action="/cart/checkout"] button[type=submit]';
+                await page.click(s);
+
+                // Check if the total cost of the order after its placement matches
+                // the total cost of the order from the cart.
+                var s = 'h3 ~ p:last-of-type strong:last-of-type';
+                const actualCost = (await page.innerText(s));
+                if (expectedCost !== actualCost)
+                  throw Error(
+                    "The total cost of the order differs from what the cart showed." + "\n\n" +
+                    "Expected: " + expectedCost + "\n" +
+                    "Actual: " + actualCost
+                  );
+
+                // Check if the title of the confirmation page is correct.
+                var s = 'h3';
+                const expected = "Your order is complete!";
+                const actual = (await page.innerText(s));
+                if (expected !== actual)
+                  throw Error(
+                    "The title of the confirmation page differs from what was expected." + "\n\n" +
+                    "Expected: " + expected + "\n" +
+                    "Actual: " + actual
+                  );
+              });
+      - type: browser
+        id: synthetics-click-ad
+        name: synthetics-click-ad
+        schedule: "@every 1m"
+        source:
+          inline:
+            script: |-
+
+              step("View home", async () => {
+
+                // Load the home page.
+                await page.goto(process.env.FRONTEND_URL);
+
+                // Scroll to the footer for the screenshot.
+                var s = 'footer';
+                await (await page.$(s)).scrollIntoViewIfNeeded();
+              });
+
+              step("Click ad", async () => {
+
+                // Get the ad text.
+                var s = '.alert a';
+                const adText = await page.innerText(s);
+
+                // Remove target='_blank' from the link to stay on this page.
+                // This is easier to manage with Elastic Synthetics.
+                await page.$eval(s, e => {
+                  e.setAttribute('target', '_self');
+                });
+
+                // Click the ad.
+                await page.click(s);
+
+                // Check if the product name matches the advertised product.
+                // The ad text might display the name differently, so we'll check if
+                // each word from the product name is present anywhere in the ad text.
+                var s = 'h2';
+                const productName = (await page.innerText(s));
+                for (var word in productName.split(" ")) {
+                  if (!adText.toLowerCase().includes(productName.toLowerCase()))
+                    throw Error(
+                      "The displayed product differs from the advertised product." + "\n\n" +
+                      "Ad text: " + adText + "\n" +
+                      "Product name: " + productName
+                    );
+                }
+
+              });
+    processors:
+      - add_cloud_metadata:
+      - add_host_metadata:
+      - add_docker_metadata:
+      - if:
+          contains:
+            cloud.availability_zone: us-central1
+        then:
+          - add_observer_metadata:
+              geo:
+                name: gcp-us-central1
+                location: 41.2619, -95.8608
+        else:
+          - if:
+              contains:
+                cloud.availability_zone: us-east1
+            then:
+              - add_observer_metadata:
+                  geo:
+                    name: gcp-us-east1
+                    location: 33.1960, -80.0131
+            else:
+              - add_observer_metadata:
+      - drop_fields:
+          fields: ["host.name"]
+          ignore_missing: true
+      - copy_fields:
+          fields:
+            - from: kubernetes.node.name
+              to: host.name
+          fail_on_error: false
+          ignore_missing: true
+    output.elasticsearch:
+      hosts: ['${ELASTICSEARCH_URL}']
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+      worker: 2
+    setup.kibana:
+      host: "${KIBANA_URL}"
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+  ilm_policy.json: |-
+    {
+      "policy": {
+        "phases": {
+          "hot": {
+            "min_age": "0ms",
+            "actions": {
+              "rollover": {
+                "max_age": "2h",
+                "max_size": "20gb"
+              }
+            }
+          },
+          "delete": {
+            "min_age": "8h",
+            "actions": {
+              "delete": {}
+            }
+          }
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: synthetics
+  namespace: kube-system
+  labels:
+    k8s-app: synthetics
+    app: beat
+spec:
+  selector:
+    matchLabels:
+      k8s-app: synthetics
+  template:
+    metadata:
+      labels:
+        k8s-app: synthetics
+        app: beat
+    spec:
+      serviceAccountName: synthetics
+      terminationGracePeriodSeconds: 30
+      hostNetwork: false
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: synthetics
+        image: docker.elastic.co/beats/heartbeat:7.12.0
+        imagePullPolicy: Always
+        args: [
+          "-c", "/etc/heartbeat.yml",
+          "-e",
+          "--strict.perms=false",
+        ]
+        env:
+        - name: FRONTEND_URL
+          value: "http://frontend.default.svc.cluster.local:8080" # FQDN of frontend, because it's in a different namespace of the GKE cluster
+        - name: ELASTICSEARCH_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_URL
+        - name: ELASTICSEARCH_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_USERNAME
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_PASSWORD
+        - name: KIBANA_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: KIBANA_URL
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+        - name: config
+          mountPath: /etc/heartbeat.yml
+          readOnly: true
+          subPath: heartbeat.yml
+        - name: config
+          mountPath: /etc/ilm_policy.json
+          readOnly: true
+          subPath: ilm_policy.json
+        - name: dockersock
+          mountPath: /var/run
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 0755
+          name: synthetics-config
+      - name: dockersock
+        hostPath:
+          path: /var/run
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: synthetics
+  namespace: kube-system
+  labels:
+    k8s-app: synthetics
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: synthetics
+  namespace: kube-system
+subjects:
+- kind: ServiceAccount
+  name: synthetics
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: synthetics
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: synthetics
+  namespace: kube-system
+  labels:
+    k8s-app: synthetics
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - namespaces
+  - events
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources:
+  - replicasets
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources:
+  - statefulsets
+  - deployments
+  - replicasets
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - ""
+  resources:
+  - nodes/stats
+  verbs:
+  - get

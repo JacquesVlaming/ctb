@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currencyservice
+  labels:
+    app: currencyservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: currencyservice
+  template:
+    metadata:
+      labels:
+        app: currencyservice
+      annotations:
+        co.elastic.monitor/type: tcp
+        co.elastic.monitor/name: currencyservice
+        co.elastic.monitor/hosts: ${data.host}:6000
+        co.elastic.monitor/schedule: "@every 5s"
+        co.elastic.monitor/timeout: 2s
+        co.elastic.logs/enabled: "true"
+        co.elastic.logs/json.keys_under_root: "true"
+        co.elastic.logs/processors.add_fields.target: "service"
+        co.elastic.logs/processors.add_fields.fields.name: "currencyService"
+    spec:
+      containers:
+      - name: currencyservice
+        image: ctb-currencyservice
+        readinessProbe:
+          tcpSocket:
+            port: 6000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+           cpu: 400m
+           memory: 200Mi
+          requests:
+           cpu: 200m
+           memory: 200Mi
+        env:
+        - name: PORT
+          value: "6000"
+        - name: ELASTIC_APM_SERVICE_VERSION
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SERVICE_VERSION
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "currencyService"
+        - name: ELASTIC_APM_SERVER_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SERVER_URL
+        - name: ELASTIC_APM_SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SECRET_TOKEN
+        - name: ELASTIC_APM_ENVIRONMENT
+          value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: currencyservice
+  labels:
+    app: currencyservice
+spec:
+  ports:
+  - port: 6000
+    targetPort: 6000
+  selector:
+    app: currencyservice

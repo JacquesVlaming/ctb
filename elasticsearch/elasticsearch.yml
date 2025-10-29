@@ -1,0 +1,60 @@
+---
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elasticsearch
+  labels:
+    app: elasticsearch
+spec:
+  version: 7.11.1
+  auth:
+    fileRealm:
+    - secretName: filerealm-secret
+  nodeSets:
+  - name: default
+    count: 3
+    config:
+      node.store.allow_mmap: false
+      script.painless.regex.enabled: true
+    podTemplate:
+      metadata:
+        labels:
+          app: elasticsearch
+        annotations:
+          co.elastic.monitor/type: tcp
+          co.elastic.monitor/name: elasticsearch
+          co.elastic.monitor/hosts: ${data.host}:9200
+          co.elastic.monitor/schedule: "@every 5s"
+          co.elastic.monitor/timeout: 2s
+          co.elastic.logs/enabled: "true"
+          co.elastic.logs/json.keys_under_root: "true"
+          co.elastic.logs/processors.add_fields.target: "service"
+          co.elastic.logs/processors.add_fields.fields.name: "elasticsearch"
+      spec:
+        containers:
+        - name: elasticsearch
+          env:
+          - name: ES_JAVA_OPTS
+            value: -Xms1g -Xmx1g
+          resources:
+            requests:
+              memory: 2Gi
+            limits:
+              memory: 2Gi
+  http:
+    service:
+      spec:
+        type: LoadBalancer
+    tls:
+      selfSignedCertificate:
+        disabled: true
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: filerealm-secret
+stringData:
+  users: |-
+    advertservice:$2a$10$/iOBg0dN5hGBB21hYtZ97u/7CtUHAvxP4X3ihoY0vqwYQgLyc6peq
+  users_roles: |-
+    superuser:advertservice

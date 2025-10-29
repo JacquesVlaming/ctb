@@ -1,0 +1,90 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emailservice
+  labels:
+    app: emailservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: emailservice
+  template:
+    metadata:
+      labels:
+        app: emailservice
+      annotations:
+        co.elastic.monitor/type: tcp
+        co.elastic.monitor/name: emailservice
+        co.elastic.monitor/hosts: ${data.host}:4000
+        co.elastic.monitor/schedule: "@every 5s"
+        co.elastic.monitor/timeout: 2s
+        co.elastic.logs/enabled: "true"
+        co.elastic.logs/json.keys_under_root: "true"
+        co.elastic.logs/processors.add_fields.target: "service"
+        co.elastic.logs/processors.add_fields.fields.name: "emailService"
+    spec:
+      containers:
+      - name: emailservice
+        image: ctb-emailservice
+        readinessProbe:
+          tcpSocket:
+            port: 4000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+           cpu: 100m
+           memory: 100Mi
+          requests:
+           cpu: 20m
+           memory: 100Mi
+        env:
+        - name: PORT
+          value: "4000"
+        - name: ELASTIC_APM_SERVICE_VERSION
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SERVICE_VERSION
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "emailService"
+        - name: ELASTIC_APM_SERVER_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SERVER_URL
+        - name: ELASTIC_APM_SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SECRET_TOKEN
+        - name: ELASTIC_APM_ENVIRONMENT
+          value: "production"
+        - name: MAILGUN_API_KEY
+          value: "placeHolder"
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: {{ .Chart.Name }}-mail-creds
+        #      key: key
+        - name: MAILGUN_DOMAIN
+          value: "sandbox369a71151cee41a68e61120bc679d182.mailgun.org"
+        - name: DUMMY_MODE
+          value: "true"
+        - name: FROM_EMAIL
+          value: "admin@sandbox369a71151cee41a68e61120bc679d182.mailgun.org"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emailservice
+  labels:
+    app: emailservice
+spec:
+  ports:
+  - port: 4000
+    targetPort: 4000
+  selector:
+    app: emailservice

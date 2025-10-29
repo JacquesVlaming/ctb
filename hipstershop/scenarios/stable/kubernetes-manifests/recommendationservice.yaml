@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendationservice
+  labels:
+    app: recommendationservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: recommendationservice
+  template:
+    metadata:
+      labels:
+        app: recommendationservice
+      annotations:
+        co.elastic.monitor/type: tcp
+        co.elastic.monitor/name: recommendationservice
+        co.elastic.monitor/hosts: ${data.host}:3000
+        co.elastic.monitor/schedule: "@every 5s"
+        co.elastic.monitor/timeout: 2s
+        co.elastic.logs/enabled: "true"
+        co.elastic.logs/json.keys_under_root: "true"
+        co.elastic.logs/processors.add_fields.target: "service"
+        co.elastic.logs/processors.add_fields.fields.name: "recommendationService"
+    spec:
+      containers:
+      - name: recommendationservice
+        image: ctb-recommendationservice
+        readinessProbe:
+          tcpSocket:
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+           cpu: 200m
+           memory: 100Mi
+          requests:
+           cpu: 50m
+           memory: 100Mi
+        env:
+        - name: PORT
+          value: "3000"
+        - name: ELASTIC_APM_SERVICE_VERSION
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SERVICE_VERSION
+        - name: PRODUCT_CATALOG_SERVICE_ADDR
+          value: "productcatalogservice:9000"
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "recommendationService"
+        - name: ELASTIC_APM_SERVER_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SERVER_URL
+        - name: ELASTIC_APM_SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SECRET_TOKEN
+        - name: ELASTIC_APM_ENVIRONMENT
+          value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendationservice
+  labels:
+    app: recommendationservice
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: recommendationservice

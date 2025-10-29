@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgenerator
+  namespace: kube-system
+  labels:
+    app: loadgenerator
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: loadgenerator
+  template:
+    metadata:
+      labels:
+        app: loadgenerator
+      annotations:
+        co.elastic.logs/enabled: "true"
+    spec:
+      containers:
+      - name: loadgenerator
+        image: ctb-loadgenerator
+        resources:
+          limits:
+           cpu: 200m
+           memory: 100Mi
+          requests:
+           cpu: 100m
+           memory: 100Mi
+        env:
+        - name: FRONTEND_ADDR
+          value: "frontend.default.svc.cluster.local:8080"
+        - name: USERS
+          value: "5000"

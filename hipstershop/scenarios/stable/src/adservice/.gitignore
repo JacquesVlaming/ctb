@@ -1,0 +1,11 @@
+*.iml
+*.ipr
+*.iws
+.gradle/**
+.idea/**
+build/**
+libs/apm-agent-attach-1.15.1-SNAPSHOT.jar
+
+/.gradle/
+/build/
+/out/

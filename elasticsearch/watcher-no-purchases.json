@@ -1,0 +1,66 @@
+{
+  "trigger": {
+    "schedule": {
+      "interval": "10s"
+    }
+  },
+  "throttle_period" : "5m",
+  "input": {
+    "search": {
+      "request": {
+        "body": {
+          "size": 0,
+          "aggs": {
+            "hits_total": {
+              "value_count": {
+                "field": "_id"
+              }
+            },
+            "hits_orders": {
+              "filter": {
+                "bool": {
+                  "filter": [
+                    {
+                      "range": {
+                        "@timestamp": {
+                          "gte": "now-1m",
+                          "lt": "now"
+                        }
+                      }
+                    },
+                    {
+                      "term": {
+                        "transaction.name": "placeOrderHandler"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "indices": [
+          "apm-*-transaction*"
+        ]
+      }
+    }
+  },
+  "condition": {
+    "script": {
+      "source": "return ctx.payload.aggregations.hits_orders.doc_count == 0 && ctx.payload.aggregations.hits_total.value > 0",
+      "lang": "painless"
+    }
+  },
+  "actions": {
+    "my_webhook" : {
+      "webhook" : {
+        "method" : "POST",
+        "url" : "$SLACK_WEBHOOK_URL",
+        "body" : "{ \"text\": \"$ALERT_MESSAGE\" }",
+        "headers" : {
+          "Content-Type" : "application/json"
+        }
+      }
+    }
+  }
+}

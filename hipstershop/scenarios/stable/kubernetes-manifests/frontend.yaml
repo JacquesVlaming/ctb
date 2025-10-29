@@ -1,0 +1,106 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+      annotations:
+        co.elastic.monitor/type: tcp
+        co.elastic.monitor/name: frontend
+        co.elastic.monitor/hosts: ${data.host}:8080
+        co.elastic.monitor/schedule: "@every 5s"
+        co.elastic.monitor/timeout: 2s
+        co.elastic.logs/enabled: "true"
+        co.elastic.logs/json.keys_under_root: "true"
+        co.elastic.logs/processors.add_fields.target: "service"
+        co.elastic.logs/processors.add_fields.fields.name: "frontend"
+    spec:
+      containers:
+      - name: frontend
+        image: ctb-frontend
+        readinessProbe:
+          httpGet:
+            port: 8080
+            path: /
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+           cpu: 500m
+           memory: 100Mi
+          requests:
+           cpu: 100m
+           memory: 100Mi
+        env:
+        - name: PORT
+          value: "8080"
+        - name: ELASTIC_APM_SERVICE_VERSION
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SERVICE_VERSION
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "frontend"
+        - name: AD_SERVICE_ADDR
+          value: "advertservice:10000"
+        - name: CURRENCY_SERVICE_ADDR
+          value: "currencyservice:6000"
+        - name: CART_SERVICE_ADDR
+          value: "cartservice:11000"
+        - name: PRODUCT_CATALOG_SERVICE_ADDR
+          value: "productcatalogservice:9000"
+        - name: SHIPPING_SERVICE_ADDR
+          value: "shippingservice:7000"
+        - name: RECOMMENDATION_SERVICE_ADDR
+          value: "recommendationservice:3000"
+        - name: CHECKOUT_SERVICE_ADDR
+          value: "checkoutservice:8000"
+        - name: ELASTIC_APM_SERVER_URLS
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SERVER_URL
+        - name: ELASTIC_APM_SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTIC_APM_SECRET_TOKEN
+        - name: ELASTIC_APM_ENVIRONMENT
+          value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: frontend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-external
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080

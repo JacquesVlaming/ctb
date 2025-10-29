@@ -1,0 +1,32 @@
+{
+	"params": {
+		"nodeType": "pod",
+		"criteria": [{
+			"metric": "memory",
+			"comparator": ">=",
+			"threshold": ["$THRESHOLD"],
+			"timeSize": 1,
+			"timeUnit": "m"
+		}],
+		"sourceId": "default",
+		"filterQueryText": "kubernetes.pod.name : $SERVICE_NAME_LOWERCASE*",
+    "filterQuery": "{\"bool\":{\"should\":[{\"query_string\":{\"fields\":[\"kubernetes.pod.name\"],\"query\":\"$SERVICE_NAME_LOWERCASE*\"}}],\"minimum_should_match\":1}}"
+	},
+	"consumer": "infrastructure",
+	"alertTypeId": "metrics.alert.inventory.threshold",
+	"schedule": {
+		"interval": "10s"
+	},
+	"actions": [{
+    "id": "$SLACK_ACTION_ID",
+		"actionTypeId": ".slack",
+		"group": "metrics.inventory_threshold.fired",
+		"params": {
+      "message" : "$ALERT_MESSAGE"
+		}
+	}],
+	"tags": ["metrics", "service.name:$SERVICE_NAME_LOWERCASE"],
+  "throttle": "5m",
+	"name": "Memory Saturation - $SERVICE_NAME",
+  "enabled": false
+}

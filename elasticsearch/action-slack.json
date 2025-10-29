@@ -1,0 +1,8 @@
+{
+  "actionTypeId" : ".slack",
+  "name" : "Slack",
+  "config" : { },
+  "secrets": {
+		"webhookUrl": "$SLACK_WEBHOOK_URL"
+	}
+}

@@ -1,0 +1,26 @@
+{
+	"params": {
+		"threshold": "$THRESHOLD",
+		"windowSize": 1,
+		"windowUnit": "m",
+		"environment": "ENVIRONMENT_ALL",
+		"serviceName": "$SERVICE_NAME"
+	},
+	"consumer": "apm",
+	"alertTypeId": "apm.error_rate",
+	"schedule": {
+		"interval": "10s"
+	},
+	"actions": [{
+		"id": "$SLACK_ACTION_ID",
+		"actionTypeId": ".slack",
+		"group": "threshold_met",
+		"params": {
+      "message" : "$ALERT_MESSAGE"
+		}
+	}],
+	"tags": ["apm", "service.name:$SERVICE_NAME_LOWERCASE"],
+  "throttle": "5m",
+	"name": "High Error Rate - $SERVICE_NAME",
+  "enabled": false
+}

@@ -1,0 +1,39 @@
+{
+	"metadata": {},
+	"elasticsearch": {
+		"cluster": [],
+		"indices": [{
+			"names": ["*"],
+			"privileges": ["read", "read_cross_cluster", "view_index_metadata"],
+			"field_security": {
+				"grant": ["*"],
+				"except": []
+			},
+			"query": "{\n  \"bool\": {\n    \"must_not\": [\n        {\n          \"term\": {\n            \"kubernetes.namespace\": \"kube-system\"\n          }\n        },\n        {\n          \"term\": {\n            \"kubernetes.event.metadata.namespace\": \"kube-system\"\n          }\n        }\n    ]\n  }\n}",
+			"allow_restricted_indices": false
+		}],
+		"run_as": []
+	},
+	"kibana": [{
+		"base": [],
+		"feature": {
+			"discover": ["all"],
+			"visualize": ["all"],
+			"dashboard": ["all"],
+			"canvas": ["all"],
+			"maps": ["all"],
+			"infrastructure": ["all"],
+			"logs": ["all"],
+			"apm": ["all"],
+			"uptime": ["all"],
+			"siem": ["all"],
+			"graph": ["all"],
+			"dev_tools": ["all"],
+			"advancedSettings": ["read"],
+			"ml": ["all"],
+			"savedObjectsManagement": ["read"],
+			"indexPatterns": ["read"]
+		},
+		"spaces": ["default"]
+	}]
+}

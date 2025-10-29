@@ -1,0 +1,28 @@
+{
+	"params": {
+		"threshold": "$THRESHOLD",
+		"aggregationType": "95th",
+		"windowSize": 2,
+		"windowUnit": "m",
+		"transactionType": "request",
+		"environment": "ENVIRONMENT_ALL",
+		"serviceName": "$SERVICE_NAME"
+	},
+	"consumer": "apm",
+	"alertTypeId": "apm.transaction_duration",
+	"schedule": {
+		"interval": "10s"
+	},
+	"actions": [{
+		"id": "$SLACK_ACTION_ID",
+		"actionTypeId": ".slack",
+		"group": "threshold_met",
+		"params": {
+      "message" : "$ALERT_MESSAGE"
+		}
+	}],
+	"tags": ["apm", "service.name:$SERVICE_NAME_LOWERCASE"],
+  "throttle": "5m",
+	"name": "High Latency - $SERVICE_NAME",
+  "enabled": false
+}

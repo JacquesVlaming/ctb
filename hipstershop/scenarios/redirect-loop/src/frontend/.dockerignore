@@ -1,0 +1,4 @@
+vendor/
+/pkg/
+/src/frontend/.idea/
+/src/frontend/vendor/

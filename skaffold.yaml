@@ -1,0 +1,180 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: skaffold/v2beta8
+kind: Config
+build:
+  tagPolicy:
+    customTemplate:
+      template: "{{.GIT_COMMIT}}-{{.SCENARIO}}"
+      components:
+      - name: GIT_COMMIT
+        gitCommit: {}
+      - name: SCENARIO
+        envTemplate:
+          template: "{{.SCENARIO}}"
+profiles:
+
+####  Scenario: stable  ########################################################
+- name: stable
+  build:
+    artifacts:
+    - image: ctb-emailservice
+      context: hipstershop/scenarios/stable/src/emailservice
+    - image: ctb-productcatalogservice
+      context: hipstershop/scenarios/stable/src/productcatalogservice
+    - image: ctb-recommendationservice
+      context: hipstershop/scenarios/stable/src/recommendationservice
+    - image: ctb-shippingservice
+      context: hipstershop/scenarios/stable/src/shippingservice
+    - image: ctb-checkoutservice
+      context: hipstershop/scenarios/stable/src/checkoutservice
+    - image: ctb-paymentservice
+      context: hipstershop/scenarios/stable/src/paymentservice
+    - image: ctb-currencyservice
+      context: hipstershop/scenarios/stable/src/currencyservice
+    - image: ctb-cartservice
+      context: hipstershop/scenarios/stable/src/cartservice
+    - image: ctb-frontend
+      context: hipstershop/scenarios/stable/src/frontend
+    - image: ctb-loadgenerator
+      context: hipstershop/scenarios/stable/src/loadgenerator
+    - image: ctb-adservice
+      context: hipstershop/scenarios/stable/src/adservice
+      docker:
+        buildArgs:
+          ELASTICSEARCH_VERSION: "{{ .ELASTICSEARCH_VERSION }}"
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/*.yaml
+
+####  Scenario: bind-localhost  ################################################
+- name: bind-localhost
+  build:
+    artifacts:
+    - image: ctb-shippingservice
+      context: hipstershop/scenarios/bind-localhost/src/shippingservice
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/bind-localhost/kubernetes-manifests/shippingservice.yaml
+
+####  Scenario: card-validation-error  #########################################
+- name: card-validation-error
+  build:
+    artifacts:
+    - image: ctb-paymentservice
+      context: hipstershop/scenarios/card-validation-error/src/paymentservice
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/paymentservice.yaml
+
+####  Scenario: cart-tls-required  #############################################
+- name: cart-tls-required
+  build:
+    artifacts:
+    - image: ctb-frontend
+      context: hipstershop/scenarios/cart-tls-required/src/frontend
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/frontend.yaml
+
+####  Scenario: demo  ##########################################################
+- name: demo
+  build:
+    artifacts:
+    - image: ctb-recommendationservice
+      context: hipstershop/scenarios/demo/src/recommendationservice
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/recommendationservice.yaml
+
+####  Scenario: js-string-addition  ############################################
+- name: js-string-addition
+  build:
+    artifacts:
+    - image: ctb-paymentservice
+      context: hipstershop/scenarios/js-string-addition/src/paymentservice
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/paymentservice.yaml
+
+####  Scenario: null-pointer-exception  ########################################
+- name: null-pointer-exception
+  build:
+    artifacts:
+    - image: ctb-adservice
+      context: hipstershop/scenarios/null-pointer-exception/src/adservice
+      docker:
+        buildArgs:
+          ELASTICSEARCH_VERSION: "{{ .ELASTICSEARCH_VERSION }}"
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/adservice.yaml
+
+####  Scenario: redirect-loop  #################################################
+- name: redirect-loop
+  build:
+    artifacts:
+    - image: ctb-frontend
+      context: hipstershop/scenarios/redirect-loop/src/frontend
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/frontend.yaml
+
+####  Scenario: slow-query  ####################################################
+- name: slow-query
+  build:
+    artifacts:
+    - image: ctb-adservice
+      context: hipstershop/scenarios/slow-query/src/adservice
+      docker:
+        buildArgs:
+          ELASTICSEARCH_VERSION: "{{ .ELASTICSEARCH_VERSION }}"
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/adservice.yaml
+
+####  Scenario: traffic-spike  #################################################
+- name: traffic-spike
+  build:
+    artifacts:
+    - image: ctb-loadgenerator
+      context: hipstershop/scenarios/stable/src/loadgenerator
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/traffic-spike/kubernetes-manifests/loadgenerator.yaml
+
+####  Scenario: unicode-encode-error  ##########################################
+- name: unicode-encode-error
+  build:
+    artifacts:
+    - image: ctb-emailservice
+      context: hipstershop/scenarios/unicode-encode-error/src/emailservice
+    - image: ctb-loadgenerator
+      context: hipstershop/scenarios/unicode-encode-error/src/loadgenerator
+  deploy:
+    kubectl:
+      manifests:
+      - ./hipstershop/scenarios/stable/kubernetes-manifests/emailservice.yaml
+      - ./hipstershop/scenarios/unicode-encode-error/kubernetes-manifests/loadgenerator.yaml

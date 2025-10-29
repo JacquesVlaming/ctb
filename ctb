@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# coding: utf-8
+"""
+Main executable file. Checks if the ctb package is installed before trying
+to invoke commands with it.
+"""
+
+# Standard packages
+import os
+import traceback
+
+if not os.environ.get("BASEDIR"):
+    os.environ["BASEDIR"] = os.path.dirname(os.path.realpath(__file__))
+elif not os.path.isabs(os.environ.get("BASEDIR")):
+    os.environ["BASEDIR"] = os.path.join(os.getcwd(), os.environ.get("BASEDIR"))
+
+try:
+    import ctb
+except ImportError as e:
+    traceback.print_exc()
+    print("")
+    print("ctb is not installed. Run this command at the root directory of the repo:")
+    print("")
+    print("    sudo python setup.py develop")
+    print("")
+
+ctb.run()

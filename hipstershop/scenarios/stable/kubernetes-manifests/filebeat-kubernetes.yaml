@@ -1,0 +1,250 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-config
+  namespace: kube-system
+  labels:
+    k8s-app: filebeat
+data:
+  filebeat.yml: |-
+    setup:
+      dashboards:
+        enabled: true
+      ilm:
+        enabled: true
+        overwrite: true
+        policy_file: /etc/ilm_policy.json
+      template:
+        enabled: true
+        overwrite: true
+        settings:
+          index:
+            number_of_shards: 1
+            number_of_replicas: 2
+    filebeat.inputs:
+    - type: container
+      paths:
+        - /var/log/containers/*.log
+      processors:
+        - add_kubernetes_metadata:
+            host: ${NODE_NAME}
+            matchers:
+            - logs_path:
+                logs_path: "/var/log/containers/"
+    filebeat.autodiscover:
+      providers:
+        - type: kubernetes
+          hints.enabled: true
+          hints.default_config:
+            type: container
+            paths:
+              - /var/log/containers/*${data.kubernetes.container.id}.log
+          host: ${NODE_NAME}
+          templates:
+          - condition:
+              equals:
+                kubernetes.namespace: default
+    processors:
+      - add_cloud_metadata:
+      - add_host_metadata:
+      - add_docker_metadata:
+      - drop_fields:
+          fields: ["host.name"]
+          ignore_missing: true
+      - copy_fields:
+          fields:
+            - from: kubernetes.node.name
+              to: host.name
+          fail_on_error: false
+          ignore_missing: true
+      - copy_fields:
+          fields:
+            - from: message
+              to: log.message
+          fail_on_error: false
+          ignore_missing: true
+      - decode_json_fields:
+          fields: ["message"]
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+          max_depth: 10
+    output.elasticsearch:
+      hosts: ['${ELASTICSEARCH_URL}']
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+      worker: 2
+    setup.kibana:
+      host: "${KIBANA_URL}"
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+  ilm_policy.json: |-
+    {
+      "policy": {
+        "phases": {
+          "hot": {
+            "min_age": "0ms",
+            "actions": {
+              "rollover": {
+                "max_age": "2h",
+                "max_size": "20gb"
+              }
+            }
+          },
+          "delete": {
+            "min_age": "8h",
+            "actions": {
+              "delete": {}
+            }
+          }
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: filebeat
+  namespace: kube-system
+  labels:
+    k8s-app: filebeat
+    app: beat
+spec:
+  selector:
+    matchLabels:
+      k8s-app: filebeat
+  template:
+    metadata:
+      labels:
+        k8s-app: filebeat
+        app: beat
+    spec:
+      serviceAccountName: filebeat
+      terminationGracePeriodSeconds: 30
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:7.12.0
+        imagePullPolicy: Always
+        args: [
+          "-c", "/etc/filebeat.yml",
+          "-e"
+        ]
+        env:
+        - name: ELASTICSEARCH_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_URL
+        - name: ELASTICSEARCH_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_USERNAME
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: ELASTICSEARCH_PASSWORD
+        - name: KIBANA_URL
+          valueFrom:
+            secretKeyRef:
+              name: ctb-secrets
+              key: KIBANA_URL
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: config
+          mountPath: /etc/filebeat.yml
+          readOnly: true
+          subPath: filebeat.yml
+        - name: config
+          mountPath: /etc/ilm_policy.json
+          readOnly: true
+          subPath: ilm_policy.json
+        - name: data
+          mountPath: /usr/share/filebeat/data
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        - name: dockersock
+          mountPath: /var/run
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 0600
+          name: filebeat-config
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: dockersock
+        hostPath:
+          path: /var/run
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: filebeat
+  namespace: kube-system
+  labels:
+    k8s-app: filebeat
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: filebeat
+  namespace: kube-system
+subjects:
+- kind: ServiceAccount
+  name: filebeat
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: filebeat
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: filebeat
+  namespace: kube-system
+  labels:
+    k8s-app: filebeat
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - namespaces
+  - events
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources:
+  - replicasets
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources:
+  - statefulsets
+  - deployments
+  - replicasets
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - ""
+  resources:
+  - nodes/stats
+  verbs:
+  - get

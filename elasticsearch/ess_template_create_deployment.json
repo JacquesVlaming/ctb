@@ -1,0 +1,107 @@
+{
+  "name": "ctb-$DEPLOYMENT_NAME",
+  "metadata": {
+    "system_owned": false
+  },
+  "resources": {
+    "elasticsearch": [
+      {
+        "region": "$ELASTIC_CLOUD_REGION",
+        "ref_id": "main-elasticsearch",
+        "plan": {
+          "cluster_topology": [
+            {
+              "node_type": {
+                "data": true,
+                "master": true,
+                "ingest": true
+              },
+              "instance_configuration_id": "gcp.data.highcpu.1",
+              "zone_count": 3,
+              "size": {
+                "resource": "memory",
+                "value": 16384
+              },
+              "elasticsearch": {
+                "enabled_built_in_plugins": []
+              }
+            },
+            {
+              "node_type": {
+                "data": false,
+                "master": false,
+                "ingest": false,
+                "ml": true
+              },
+              "instance_configuration_id": "gcp.ml.1",
+              "zone_count": 2,
+              "size": {
+                "resource": "memory",
+                "value": 2048
+              },
+              "elasticsearch": {
+                "enabled_built_in_plugins": []
+              }
+            }
+          ],
+          "elasticsearch": {
+            "version": "$ELASTICSEARCH_VERSION"
+          },
+          "deployment_template": {
+            "id": "gcp-compute-optimized"
+          }
+        },
+        "settings": {
+          "dedicated_masters_threshold": 6
+        }
+      }
+    ],
+    "kibana": [
+      {
+        "region": "$ELASTIC_CLOUD_REGION",
+        "elasticsearch_cluster_ref_id": "main-elasticsearch",
+        "ref_id": "main-kibana",
+        "plan": {
+          "cluster_topology": [
+            {
+              "instance_configuration_id": "gcp.kibana.1",
+              "zone_count": 2,
+              "size": {
+                "resource": "memory",
+                "value": 2048
+              }
+            }
+          ],
+          "kibana": {
+            "version": "$ELASTICSEARCH_VERSION",
+            "user_settings_yaml": "server.defaultRoute: /app/observability"
+          }
+        }
+      }
+    ],
+    "apm": [
+      {
+        "region": "$ELASTIC_CLOUD_REGION",
+        "elasticsearch_cluster_ref_id": "main-elasticsearch",
+        "ref_id": "main-apm",
+        "plan": {
+          "cluster_topology": [
+            {
+              "instance_configuration_id": "gcp.apm.1",
+              "zone_count": 2,
+              "size": {
+                "resource": "memory",
+                "value": 1024
+              }
+            }
+          ],
+          "apm": {
+            "version": "$ELASTICSEARCH_VERSION",
+            "user_settings_yaml": "apm-server.ilm:\n  enabled: true\n  setup:\n    mapping:\n      - event_type: error\n        policy_name: apm-policy\n      - event_type: span\n        policy_name: apm-policy\n      - event_type: transaction\n        policy_name: apm-policy\n      - event_type: metric\n        policy_name: apm-policy\n      - event_type: profile\n        policy_name: apm-policy\n    enabled: true\n    policies:\n      - name: apm-policy\n        policy:\n          phases:\n            hot:\n              min_age: 0ms\n              actions:\n                rollover:\n                  max_size: 20gb\n                  max_age: 2h\n            delete:\n              min_age: 8h\n              actions:\n                delete: {}"
+          }
+        }
+      }
+    ],
+    "enterprise_search": []
+  }
+}

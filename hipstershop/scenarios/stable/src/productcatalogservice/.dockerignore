@@ -1,0 +1,4 @@
+vendor/
+/src/productcatalogservice/vendor/
+/pkg/
+/src/productcatalogservice/.idea/

@@ -1,0 +1,9 @@
+{
+	"username": "operator",
+  "password": "operator",
+	"roles": ["operator"],
+	"full_name": "Operator",
+	"email": "david.moore@elastic.co",
+	"metadata": {},
+	"enabled": true
+}

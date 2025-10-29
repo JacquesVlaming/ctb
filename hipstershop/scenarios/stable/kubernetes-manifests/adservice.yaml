@@ -1,0 +1,111 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: advertservice
+  labels:
+    app: advertservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: advertservice
+  template:
+    metadata:
+      labels:
+        app: advertservice
+      annotations:
+        co.elastic.monitor/type: tcp
+        co.elastic.monitor/name: advertservice
+        co.elastic.monitor/hosts: ${data.host}:10000
+        co.elastic.monitor/schedule: "@every 5s"
+        co.elastic.monitor/timeout: 2s
+        co.elastic.logs/enabled: "true"
+        co.elastic.logs/json.keys_under_root: "true"
+        co.elastic.logs/processors.add_fields.target: "service"
+        co.elastic.logs/processors.add_fields.fields.name: "advertService"
+    spec:
+      containers:
+        - name: advertservice
+          image: ctb-adservice
+          resources:
+            limits:
+              cpu: 1
+              memory: 1024Mi
+            requests:
+              cpu: 1
+              memory: 256Mi
+          env:
+          - name: ELASTIC_APM_SERVICE_NODE_NAME
+            value: "advertservice-pod"
+          - name: ELASTIC_APM_METRICS_INTERVAL
+            value: "10s"
+          - name: PORT
+            value: "10000"
+          - name: ELASTIC_APM_LOG_LEVEL
+            value: "INFO"
+          - name: ELASTIC_APM_SERVICE_VERSION
+            valueFrom:
+              secretKeyRef:
+                name: ctb-secrets
+                key: ELASTIC_APM_SERVICE_VERSION
+          - name: ELASTIC_APM_SECRET_TOKEN
+          - name: ELASTIC_APM_SERVICE_NAME
+            value: "advertService"
+          - name: ELASTIC_APM_ENABLE_LOG_CORRELATION
+            value: "true"
+          - name: MAX_ADS_TO_SERVE
+            value: "2"
+          - name: ENABLE_CACHE
+            value: "true"
+          - name: ELASTIC_APM_SERVER_URLS
+            valueFrom:
+              secretKeyRef:
+                name: ctb-secrets
+                key: ELASTIC_APM_SERVER_URL
+          - name: ELASTIC_APM_SECRET_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: ctb-secrets
+                key: ELASTIC_APM_SECRET_TOKEN
+          - name: ELASTIC_APM_DISABLE_INSTRUMENTATIONS
+            value: "grpc"
+          - name: ELASTIC_APM_ENVIRONMENT
+            value: "production"
+          - name: ELASTICSEARCH_USERNAME
+            value: "advertservice" # Defined in ECK spec
+          - name: ELASTICSEARCH_PASSWORD
+            value: "advertservice" # Defined in ECK spec
+          - name: ELASTICSEARCH_URL
+            value: "http://elasticsearch-es-default:9200" # Defined by ECK
+          - name: JAVA_OPTS
+            value: -Xms64m -Xmx512m -XX:+ExitOnOutOfMemoryError
+          - name: KUBERNETES_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: KUBERNETES_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: KUBERNETES_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: KUBERNETES_POD_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: advertservice
+  labels:
+    app: advertservice
+spec:
+  ports:
+  - port: 10000
+    targetPort: 10000
+  selector:
+    app: advertservice
