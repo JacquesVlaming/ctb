@@ -83,6 +83,8 @@ def run_validate_docker_running():
 def run_validate_docker_installed():
     try:
         exitcode, out, err = cmd("docker --version", False)
+        if isinstance(out, bytes):
+            out = out.decode("utf-8")
         return out.startswith("Docker version")
     except:
         return False
