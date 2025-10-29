@@ -76,6 +76,12 @@ def run_validate_kubectl_installed():
 def run_validate_docker_running():
     try:
         exitcode, out, err = cmd("docker ps -q", False)
+
+        # Decode bytes to string if needed
+        if isinstance(out, bytes):
+            out = out.decode("utf-8").strip()  # strip removes trailing newline
+
+        # Return True if output is empty (no containers) or matches container IDs
         return bool(re.match(r"^[a-f0-9]+$", out)) or out == ""
     except:
         return False
