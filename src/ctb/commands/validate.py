@@ -69,6 +69,11 @@ def run_validate_gcloud_installed():
 def run_validate_kubectl_installed():
     try:
         exitcode, out, err = cmd("kubectl version", False)
+
+        # Decode bytes to string if needed
+        if isinstance(out, bytes):
+            out = out.decode("utf-8").strip()
+
         return out.startswith("Client Version")
     except:
         return False
