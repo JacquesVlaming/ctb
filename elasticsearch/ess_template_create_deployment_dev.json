@@ -16,7 +16,7 @@
                 "master": true,
                 "ingest": true
               },
-              "instance_configuration_id": "gcp.es.datahot.n2d.64x8x45",
+              "instance_configuration_id": "gcp.data.highcpu.1",
               "zone_count": 3,
               "size": {
                 "resource": "memory",
@@ -48,7 +48,7 @@
             "version": "$ELASTICSEARCH_VERSION"
           },
           "deployment_template": {
-            "id": "gcp-compute-optimized"
+            "id": "gcp.data.hot_content.2"
           }
         },
         "settings": {
