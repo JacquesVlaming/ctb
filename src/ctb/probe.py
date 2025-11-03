@@ -37,25 +37,11 @@ def get_ess_operator_user():
 #     )
 
 def get_ess_slack_connector():
-    """Fetch Slack connectors from Kibana safely using the Connectors API."""
-    response = requests.get(
-        url=f"{env('KIBANA_URL')}/api/actions/connectors",
-        auth=(env("ELASTICSEARCH_USERNAME"), env("ELASTICSEARCH_PASSWORD")),
-        headers={
-            "kbn-xsrf": "true",
-            "Content-Type": "application/json"
-        },
+    return requests.get(
+        url="{}/api/actions/connectors".format(env("KIBANA_URL")),
+        headers=constants.kibana_api_headers(),
         timeout=30
     )
-
-    response.raise_for_status()
-    connectors = response.json()
-
-    # Filter only Slack connectors
-    slack_connectors = [
-        c for c in connectors if c.get("connector_type_id") == ".slack"
-    ]
-    return slack_connectors
 
 
 
