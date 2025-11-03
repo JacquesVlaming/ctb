@@ -126,21 +126,42 @@ def status_ess_operator_user():
 
 def status_ess_slack_connector():
     # Return None if required env vars are missing
-    if not env("ELASTIC_CLOUD_DEPLOYMENT_ID") or not env("ELASTIC_CLOUD_API_KEY") \
-       or not env("ELASTICSEARCH_URL") or not env("KIBANA_URL") \
-       or not env("ELASTICSEARCH_USERNAME") or not env("ELASTICSEARCH_PASSWORD"):
+    required_vars = [
+        "ELASTIC_CLOUD_DEPLOYMENT_ID",
+        "ELASTIC_CLOUD_API_KEY",
+        "ELASTICSEARCH_URL",
+        "KIBANA_URL",
+        "ELASTICSEARCH_USERNAME",
+        "ELASTICSEARCH_PASSWORD",
+    ]
+    if any(not env(var) for var in required_vars):
         return None
 
     response = get_ess_slack_connector()
+    print(response.json())  # Debug: see what we got
 
     # Ensure request was successful
-    if response.status_code in range(400, 599) and response.status_code not in [404, 410]:
-        raise Exception(response)
+    if response.status_code >= 400 and response.status_code < 600 and response.status_code not in [404, 410]:
+        raise Exception(f"Error fetching Slack connectors: {response.status_code} {response.text}")
 
-    # response.json() is now a list
-    connectors = response.json()
-    slack_connectors = [c for c in connectors if c.get("connector_type_id") == ".slack"]
+    try:
+        connectors = response.json()
+    except ValueError:
+        # Invalid JSON
+        return False
+
+    # If the response is an Elasticsearch hits structure
+    if "hits" in connectors and "hits" in connectors["hits"]:
+        hits = connectors["hits"]["hits"]
+        slack_connectors = [c for c in hits if c.get("_source", {}).get("connector_type_id") == ".slack"]
+    # If response is already a list of connectors
+    elif isinstance(connectors, list):
+        slack_connectors = [c for c in connectors if c.get("connector_type_id") == ".slack"]
+    else:
+        slack_connectors = []
+
     return len(slack_connectors) > 0
+
 
 
 def status_frontend():
