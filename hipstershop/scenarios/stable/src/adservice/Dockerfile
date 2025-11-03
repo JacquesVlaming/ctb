@@ -4,7 +4,7 @@ FROM openjdk:8-slim as builder
 WORKDIR /app
 
 # Pass Elasticsearch version as build arg
-ARG ELASTICSEARCH_VERSION=7.17.0
+ARG ELASTICSEARCH_VERSION="7.9.3"
 #ENV ELASTICSEARCH_VERSION=${ELASTICSEARCH_VERSION}
 
 RUN mkdir /app/libs
