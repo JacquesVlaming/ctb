@@ -72,31 +72,34 @@ def run_setup_gke(dev=False):
     validate_setup_gke()
     print("")
     print("Creating GKE cluster...")
-    cmd("""
-    gcloud beta container clusters create 'ctb-$DEPLOYMENT_NAME' \
-        --project "$GCP_PROJECT_NAME" \
-        --region "$GCP_REGION_NAME" \
-        --cluster-version 1.21.11-gke.1100 \
-        --enable-ip-alias \
-        --network "projects/$GCP_PROJECT_NAME/global/networks/$GCP_NETWORK_NAME" \
-        --subnetwork "projects/$GCP_PROJECT_NAME/regions/$GCP_REGION_NAME/subnetworks/$GCP_SUBNETWORK_NAME" \
-        --machine-type "e2-highcpu-8" \
-        --image-type "COS" \
-        --disk-size "32" \
-        --disk-type "pd-ssd" \
-        --metadata disable-legacy-endpoints=true \
-        --service-account "$GCP_SERVICE_ACCOUNT_NAME" \
-        --enable-autorepair \
-        --enable-autoscaling \
-        --no-enable-autoupgrade \
-        --no-enable-basic-auth \
-        --no-enable-master-authorized-networks \
-        --num-nodes "1" \
-        --min-nodes "1" \
-        --max-nodes "1" \
-        --default-max-pods-per-node "110" \
-        --addons HorizontalPodAutoscaling,HttpLoadBalancing
-    """)
+    try:
+        cmd("""
+        gcloud beta container clusters create 'ctb-$DEPLOYMENT_NAME' \
+            --project "$GCP_PROJECT_NAME" \
+            --region "$GCP_REGION_NAME" \
+            --cluster-version 1.21.11-gke.1100 \
+            --enable-ip-alias \
+            --network "projects/$GCP_PROJECT_NAME/global/networks/$GCP_NETWORK_NAME" \
+            --subnetwork "projects/$GCP_PROJECT_NAME/regions/$GCP_REGION_NAME/subnetworks/$GCP_SUBNETWORK_NAME" \
+            --machine-type "e2-highcpu-8" \
+            --image-type "COS" \
+            --disk-size "32" \
+            --disk-type "pd-ssd" \
+            --metadata disable-legacy-endpoints=true \
+            --service-account "$GCP_SERVICE_ACCOUNT_NAME" \
+            --enable-autorepair \
+            --enable-autoscaling \
+            --no-enable-autoupgrade \
+            --no-enable-basic-auth \
+            --no-enable-master-authorized-networks \
+            --num-nodes "1" \
+            --min-nodes "1" \
+            --max-nodes "1" \
+            --default-max-pods-per-node "110" \
+            --addons HorizontalPodAutoscaling,HttpLoadBalancing
+        """)
+    except Exception as e:
+        print(e)
 
     # Verify that the GKE cluster was created
     print("")
