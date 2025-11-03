@@ -246,6 +246,10 @@ def run():
         # Get statuses of deployments and daemonsets
         lines = []
         exitcode, out, err = cmd("""kubectl get deployments --all-namespaces -o=go-template='{{range .items}}{{.metadata.name}}\t{{.status.replicas}}/{{.status.readyReplicas}}{{printf "\\n"}}{{end}}'""", False)
+
+        if isinstance(out, bytes):
+            out = out.decode("utf-8")  # convert bytes → str
+
         for line in out.split("\n"):
             if not line:
                 continue
