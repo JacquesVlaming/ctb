@@ -207,75 +207,75 @@ def run_setup_gke(dev=False):
     if not ready:
         sys.exit(1)
 
-    # Install ECK
-    print("")
-    print("Installing ECK on GKE...")
-    cmd("kubectl apply -f '{}/elasticsearch/all-in-one.yml'".format(env("BASEDIR")))
-
-    # Deploy Elasticsearch for advertService
-    print("")
-    print("Deploying Elastisearch ads cluster on GKE...")
-    cmd("kubectl apply -f '{}/elasticsearch/elasticsearch.yml'".format(env("BASEDIR")))
-
-    # Wait for Elasticsearch to be available...
-    print("")
-    print("Waiting for Elasticsearch ads cluster external IP...")
-    sys.stdout.write("...")
-    sys.stdout.flush()
-    ready = False
-    es_ads_ip = ""
-    while not ready:
-        exitcode, out, err = cmd("kubectl get service elasticsearch-es-http -o json", stdout=False)
-        if (err):
-            # This error message is expected and will appear until the service is ready.
-            if "NotFound" in err:
-                time.sleep(4)
-                sys.stdout.write(".")
-                sys.stdout.flush()
-                continue
-            raise Exception(err)
-        try:
-            response = json.loads(out)
-        except ValueError:
-            time.sleep(4)
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            continue
-        ingress = response.get("status", {}).get("loadBalancer", {}).get("ingress", [{}])
-        ip = ingress[0].get("ip") if ingress else None
-        if not ip:
-            time.sleep(4)
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        else:
-            es_ads_ip = ip
-            sys.stdout.write("ready: {}\n".format(es_ads_ip))
-            sys.stdout.flush()
-            ready = True
-    print("")
-    print("Waiting for Elasticsearch ads cluster to be available in ~3 minutes...")
-    sys.stdout.write("...")
-    sys.stdout.flush()
-    es_ads_url = "http://{}:9200".format(es_ads_ip)
-    ready = False
-    while not ready:
-        try:
-            response = requests.get(
-                url="{}/_cat/health".format(es_ads_url),
-                auth=("advertservice", "advertservice"),
-                timeout=30
-            )
-            if "green 3" in response.content:
-                print("ready.")
-                ready = True
-            else:
-                time.sleep(4)
-                sys.stdout.write(".")
-                sys.stdout.flush()
-        except Exception as e:
-            time.sleep(4)
-            sys.stdout.write(".")
-            sys.stdout.flush()
+    # # Install ECK
+    # print("")
+    # print("Installing ECK on GKE...")
+    # cmd("kubectl apply -f '{}/elasticsearch/all-in-one.yml'".format(env("BASEDIR")))
+    #
+    # # Deploy Elasticsearch for advertService
+    # print("")
+    # print("Deploying Elastisearch ads cluster on GKE...")
+    # cmd("kubectl apply -f '{}/elasticsearch/elasticsearch.yml'".format(env("BASEDIR")))
+    #
+    # # Wait for Elasticsearch to be available...
+    # print("")
+    # print("Waiting for Elasticsearch ads cluster external IP...")
+    # sys.stdout.write("...")
+    # sys.stdout.flush()
+    # ready = False
+    # es_ads_ip = ""
+    # while not ready:
+    #     exitcode, out, err = cmd("kubectl get service elasticsearch-es-http -o json", stdout=False)
+    #     if (err):
+    #         # This error message is expected and will appear until the service is ready.
+    #         if "NotFound" in err:
+    #             time.sleep(4)
+    #             sys.stdout.write(".")
+    #             sys.stdout.flush()
+    #             continue
+    #         raise Exception(err)
+    #     try:
+    #         response = json.loads(out)
+    #     except ValueError:
+    #         time.sleep(4)
+    #         sys.stdout.write(".")
+    #         sys.stdout.flush()
+    #         continue
+    #     ingress = response.get("status", {}).get("loadBalancer", {}).get("ingress", [{}])
+    #     ip = ingress[0].get("ip") if ingress else None
+    #     if not ip:
+    #         time.sleep(4)
+    #         sys.stdout.write(".")
+    #         sys.stdout.flush()
+    #     else:
+    #         es_ads_ip = ip
+    #         sys.stdout.write("ready: {}\n".format(es_ads_ip))
+    #         sys.stdout.flush()
+    #         ready = True
+    # print("")
+    # print("Waiting for Elasticsearch ads cluster to be available in ~3 minutes...")
+    # sys.stdout.write("...")
+    # sys.stdout.flush()
+    # es_ads_url = "http://{}:9200".format(es_ads_ip)
+    # ready = False
+    # while not ready:
+    #     try:
+    #         response = requests.get(
+    #             url="{}/_cat/health".format(es_ads_url),
+    #             auth=("advertservice", "advertservice"),
+    #             timeout=30
+    #         )
+    #         if "green 3" in response.content:
+    #             print("ready.")
+    #             ready = True
+    #         else:
+    #             time.sleep(4)
+    #             sys.stdout.write(".")
+    #             sys.stdout.flush()
+    #     except Exception as e:
+    #         time.sleep(4)
+    #         sys.stdout.write(".")
+    #         sys.stdout.flush()
 
     # Ensure ad data is indexed in Elasticsearch
     print("")
