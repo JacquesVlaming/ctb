@@ -138,7 +138,6 @@ def status_ess_slack_connector():
         return None
 
     response = get_ess_slack_connector()
-    print(response.json())  # Debug: see what we got
 
     # Ensure request was successful
     if response.status_code >= 400 and response.status_code < 600 and response.status_code not in [404, 410]:
@@ -150,18 +149,14 @@ def status_ess_slack_connector():
         # Invalid JSON
         return False
 
-    # If the response is an Elasticsearch hits structure
-    if "hits" in connectors and "hits" in connectors["hits"]:
-        hits = connectors["hits"]["hits"]
-        slack_connectors = [c for c in hits if c.get("_source", {}).get("connector_type_id") == ".slack"]
-    # If response is already a list of connectors
-    elif isinstance(connectors, list):
-        slack_connectors = [c for c in connectors if c.get("connector_type_id") == ".slack"]
-    else:
-        slack_connectors = []
+    # Ensure connectors is a list
+    if not isinstance(connectors, list):
+        return False
+
+    # Filter for Slack connectors
+    slack_connectors = [c for c in connectors if c.get("connector_type_id") == ".slack"]
 
     return len(slack_connectors) > 0
-
 
 
 def status_frontend():
