@@ -408,6 +408,7 @@ def run_setup_ess(dev=False):
         print("")
         print("Updating Slack connector...")
     payload = utils.load_template_json(os.path.join(env("BASEDIR"), "elasticsearch", "action-slack.json"))
+    print(payload)
     # Kibana does not want these fields when updating an alert
     if update:
         del payload["actionTypeId"]
