@@ -51,77 +51,92 @@ def validate_setup_gke():
             print("")
             sys.exit(1)
 
-def validate_setup_ess():
-    validate_setup()
-    required = (
-        "ELASTIC_CLOUD_API_KEY",
-        "ELASTIC_CLOUD_REGION",
-        "ELASTICSEARCH_VERSION"
-    )
-    for variable in required:
-        if not env(variable):
-            print("")
-            print("You must set these variables in {} to setup ESS:".format(env("ENVFILE")))
-            print("")
-            for variable in required:
-                print("  {}".format(variable))
-            print("")
-            sys.exit(1)
+    def validate_setup_ess():
+        validate_setup()
+        required = (
+            "ELASTIC_CLOUD_API_KEY",
+            "ELASTIC_CLOUD_REGION",
+            "ELASTICSEARCH_VERSION"
+        )
+        for variable in required:
+            if not env(variable):
+                print("")
+                print("You must set these variables in {} to setup ESS:".format(env("ENVFILE")))
+                print("")
+                for variable in required:
+                    print("  {}".format(variable))
+                print("")
+                sys.exit(1)
 
-    import json
-    import subprocess
-    import os
+        import json
+        import subprocess
+        import os
 
-    def run_setup_gke(dev=False):
-        validate_setup_gke()
-        print("\nCreating GKE cluster...")
+        # Helper to decode bytes to string safely
+        def decode_bytes(val):
+            if isinstance(val, bytes):
+                return val.decode("utf-8")
+            return val
 
-        # Fetch the latest supported master version for the region
-        try:
-            result = subprocess.run(
-                [
-                    "gcloud", "container", "get-server-config",
-                    "--project", os.environ["GCP_PROJECT_NAME"],
-                    "--region", os.environ["GCP_REGION_NAME"],
-                    "--format=json"
-                ],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            server_config = json.loads(result.stdout)
-            latest_version = server_config["validMasterVersions"][0]
-            print(f"Using latest supported master version: {latest_version}")
-        except Exception as e:
-            print(f"Warning: Could not fetch latest master version, falling back to 'latest'. Error: {e}")
-            latest_version = "latest"
+        def run_setup_gke(dev=False):
+            validate_setup_gke()
+            print("\nCreating GKE cluster...")
 
-        # Build gcloud cluster create command
-        cmd(f"""
-        gcloud beta container clusters create "ctb-{os.environ['DEPLOYMENT_NAME']}" \
-            --project "{os.environ['GCP_PROJECT_NAME']}" \
-            --region "{os.environ['GCP_REGION_NAME']}" \
-            --cluster-version "{latest_version}" \
-            --enable-ip-alias \
-            --network "projects/{os.environ['GCP_PROJECT_NAME']}/global/networks/{os.environ['GCP_NETWORK_NAME']}" \
-            --subnetwork "projects/{os.environ['GCP_PROJECT_NAME']}/regions/{os.environ['GCP_REGION_NAME']}/subnetworks/{os.environ['GCP_SUBNETWORK_NAME']}" \
-            --machine-type "e2-highcpu-8" \
-            --image-type "COS" \
-            --disk-size "32" \
-            --disk-type "pd-ssd" \
-            --metadata disable-legacy-endpoints=true \
-            --service-account "{os.environ['GCP_SERVICE_ACCOUNT_NAME']}" \
-            --enable-autorepair \
-            --enable-autoscaling \
-            --no-enable-autoupgrade \
-            --no-enable-basic-auth \
-            --no-enable-master-authorized-networks \
-            --num-nodes "1" \
-            --min-nodes "1" \
-            --max-nodes "1" \
-            --default-max-pods-per-node "110" \
-            --addons HorizontalPodAutoscaling,HttpLoadBalancing
-        """)
+            # Fetch the latest supported master version for the region
+            try:
+                result = subprocess.run(
+                    [
+                        "gcloud", "container", "get-server-config",
+                        "--project", os.environ["GCP_PROJECT_NAME"],
+                        "--region", os.environ["GCP_REGION_NAME"],
+                        "--format=json"
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                server_config = json.loads(result.stdout)
+                latest_version = server_config["validMasterVersions"][0]
+                print(f"Using latest supported master version: {latest_version}")
+            except Exception as e:
+                print(f"Warning: Could not fetch latest master version, falling back to 'latest'. Error: {e}")
+                latest_version = "latest"
+
+            # Build gcloud cluster create command
+            exitcode, out, err = cmd(f"""
+            gcloud beta container clusters create "ctb-{os.environ['DEPLOYMENT_NAME']}" \
+                --project "{os.environ['GCP_PROJECT_NAME']}" \
+                --region "{os.environ['GCP_REGION_NAME']}" \
+                --cluster-version "{latest_version}" \
+                --enable-ip-alias \
+                --network "projects/{os.environ['GCP_PROJECT_NAME']}/global/networks/{os.environ['GCP_NETWORK_NAME']}" \
+                --subnetwork "projects/{os.environ['GCP_PROJECT_NAME']}/regions/{os.environ['GCP_REGION_NAME']}/subnetworks/{os.environ['GCP_SUBNETWORK_NAME']}" \
+                --machine-type "e2-highcpu-8" \
+                --image-type "COS" \
+                --disk-size "32" \
+                --disk-type "pd-ssd" \
+                --metadata disable-legacy-endpoints=true \
+                --service-account "{os.environ['GCP_SERVICE_ACCOUNT_NAME']}" \
+                --enable-autorepair \
+                --enable-autoscaling \
+                --no-enable-autoupgrade \
+                --no-enable-basic-auth \
+                --no-enable-master-authorized-networks \
+                --num-nodes "1" \
+                --min-nodes "1" \
+                --max-nodes "1" \
+                --default-max-pods-per-node "110" \
+                --addons HorizontalPodAutoscaling,HttpLoadBalancing
+            """)
+
+            out = decode_bytes(out)
+            err = decode_bytes(err)
+
+            if err:
+                if "NotFound" in err:
+                    print("Resource not found.")
+                else:
+                    raise Exception(err)
 
     # def run_setup_gke(dev=False):
 #     validate_setup_gke()
