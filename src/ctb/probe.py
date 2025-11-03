@@ -37,11 +37,17 @@ def get_ess_operator_user():
 #     )
 
 def get_ess_slack_connector():
-    return requests.get(
+    """Return a list of Slack connectors from Kibana."""
+    response = requests.get(
         url="{}/api/actions/connectors".format(env("KIBANA_URL")),
         headers=constants.kibana_api_headers(),
         timeout=30
     )
+    response.raise_for_status()  # optional: raise an error if the request failed
+
+    connectors = response.json()  # returns a list
+    slack_connectors = [c for c in connectors if c.get("connector_type_id") == ".slack"]
+    return slack_connectors
 
 
 
