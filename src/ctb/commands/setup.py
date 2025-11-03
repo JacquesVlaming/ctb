@@ -77,7 +77,6 @@ def run_setup_gke(dev=False):
         gcloud beta container clusters create 'ctb-$DEPLOYMENT_NAME' \
             --project "$GCP_PROJECT_NAME" \
             --region "$GCP_REGION_NAME" \
-            --cluster-version 1.21.11-gke.1100 \
             --enable-ip-alias \
             --network "projects/$GCP_PROJECT_NAME/global/networks/$GCP_NETWORK_NAME" \
             --subnetwork "projects/$GCP_PROJECT_NAME/regions/$GCP_REGION_NAME/subnetworks/$GCP_SUBNETWORK_NAME" \
