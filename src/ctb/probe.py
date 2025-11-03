@@ -36,12 +36,12 @@ def get_ess_operator_user():
 #         timeout=30
 #     )
 
-def get_ess_slack_connector():
-    return requests.get(
-        url="{}/api/actions/connectors".format(env("KIBANA_URL")),
-        headers=constants.kibana_api_headers(),
-        timeout=30
-    )
+# def get_ess_slack_connector():
+#     return requests.get(
+#         url="{}/api/actions/connectors".format(env("KIBANA_URL")),
+#         headers=constants.kibana_api_headers(),
+#         timeout=30
+#     )
 
 
 
