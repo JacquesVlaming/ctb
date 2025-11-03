@@ -64,36 +64,15 @@ def load_template_json(filepath):
 #     exitcode = p.returncode
 #     return exitcode, out, err
 
-def cmd(command, stdout=True, stderr=True, shell=True):
-    """
-    Run a shell command and return (exitcode, out, err) as strings.
-
-    Parameters:
-    - command: str or list, command to execute
-    - stdout: capture stdout
-    - stderr: capture stderr
-    - shell: whether to run via shell (default True)
-
-    Returns:
-    - exitcode: int
-    - out: str (decoded UTF-8)
-    - err: str (decoded UTF-8)
-    """
-    process = subprocess.Popen(
-        command,
-        shell=shell,
-        stdout=subprocess.PIPE if stdout else None,
-        stderr=subprocess.PIPE if stderr else None
-    )
-
-    out_bytes, err_bytes = process.communicate()
-    exitcode = process.returncode
-
-    # Decode bytes → string
-    out_str = out_bytes.decode("utf-8").strip() if out_bytes else ""
-    err_str = err_bytes.decode("utf-8").strip() if err_bytes else ""
-
-    return exitcode, out_str, err_str
+def cmd(command, stdout=True):
+    """Execute a shell command."""
+    args = shlex.split(expandvars(command))
+    if stdout:
+        return subprocess.call(args)
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    exitcode = p.returncode
+    return exitcode, out, err
 
 
 
