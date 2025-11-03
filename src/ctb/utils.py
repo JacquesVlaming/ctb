@@ -47,7 +47,7 @@ def load_file(filepath):
 
 def load_template(filepath):
     """Read a file and populate its variables."""
-    return expandvars(load_file(filepath).strip()).encode("utf-8")
+    return expandvars(load_file(filepath).strip())
 
 def load_template_json(filepath):
     """Read a file containing a JSON template, populate its variables, and
