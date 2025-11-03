@@ -139,13 +139,14 @@ def run_setup_gke(dev=False):
     while not ready:
         exitcode, out, err = cmd("kubectl get service elasticsearch-es-http -o json", stdout=False)
         if (err):
-            # This error message is expected and will appear until the service is ready.
-            if "NotFound" in err:
+            err_str = err.decode("utf-8") if isinstance(err, bytes) else err
+
+            if "NotFound" in err_str:
                 time.sleep(4)
                 sys.stdout.write(".")
                 sys.stdout.flush()
                 continue
-            raise Exception(err)
+            raise Exception(err_str)
         try:
             response = json.loads(out)
         except ValueError:
