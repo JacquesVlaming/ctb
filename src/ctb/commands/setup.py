@@ -51,122 +51,141 @@ def validate_setup_gke():
             print("")
             sys.exit(1)
 
-    def validate_setup_ess():
-        validate_setup()
-        required = (
-            "ELASTIC_CLOUD_API_KEY",
-            "ELASTIC_CLOUD_REGION",
-            "ELASTICSEARCH_VERSION"
-        )
-        for variable in required:
-            if not env(variable):
-                print("")
-                print("You must set these variables in {} to setup ESS:".format(env("ENVFILE")))
-                print("")
-                for variable in required:
-                    print("  {}".format(variable))
-                print("")
-                sys.exit(1)
 
-        import json
-        import subprocess
-        import os
+def validate_setup_ess():
+    validate_setup()
+    required = (
+        "ELASTIC_CLOUD_API_KEY",
+        "ELASTIC_CLOUD_REGION",
+        "ELASTICSEARCH_VERSION"
+    )
+    for variable in required:
+        if not env(variable):
+            print("")
+            print("You must set these variables in {} to setup ESS:".format(env("ENVFILE")))
+            print("")
+            for variable in required:
+                print("  {}".format(variable))
+            print("")
+            sys.exit(1)
 
-        # Helper to decode bytes to string safely
-        def decode_bytes(val):
-            if isinstance(val, bytes):
-                return val.decode("utf-8")
-            return val
+    import json
+    import subprocess
+    import os
 
-        def run_setup_gke(dev=False):
-            validate_setup_gke()
-            print("\nCreating GKE cluster...")
+    # Helper to decode bytes to string safely
+    def decode_bytes(val):
+        if isinstance(val, bytes):
+            return val.decode("utf-8")
+        return val
 
-            # Fetch the latest supported master version for the region
-            try:
-                result = subprocess.run(
-                    [
-                        "gcloud", "container", "get-server-config",
-                        "--project", os.environ["GCP_PROJECT_NAME"],
-                        "--region", os.environ["GCP_REGION_NAME"],
-                        "--format=json"
-                    ],
-                    capture_output=True,
-                    text=True,
-                    check=True
-                )
-                server_config = json.loads(result.stdout)
-                latest_version = server_config["validMasterVersions"][0]
-                print(f"Using latest supported master version: {latest_version}")
-            except Exception as e:
-                print(f"Warning: Could not fetch latest master version, falling back to 'latest'. Error: {e}")
-                latest_version = "latest"
+    def run_setup_gke(dev=False):
+        validate_setup_gke()
+        print("\nCreating GKE cluster...")
 
-            # Build gcloud cluster create command
-            exitcode, out, err = cmd(f"""
-            gcloud beta container clusters create "ctb-{os.environ['DEPLOYMENT_NAME']}" \
-                --project "{os.environ['GCP_PROJECT_NAME']}" \
-                --region "{os.environ['GCP_REGION_NAME']}" \
-                --cluster-version "{latest_version}" \
-                --enable-ip-alias \
-                --network "projects/{os.environ['GCP_PROJECT_NAME']}/global/networks/{os.environ['GCP_NETWORK_NAME']}" \
-                --subnetwork "projects/{os.environ['GCP_PROJECT_NAME']}/regions/{os.environ['GCP_REGION_NAME']}/subnetworks/{os.environ['GCP_SUBNETWORK_NAME']}" \
-                --machine-type "e2-highcpu-8" \
-                --image-type "COS" \
-                --disk-size "32" \
-                --disk-type "pd-ssd" \
-                --metadata disable-legacy-endpoints=true \
-                --service-account "{os.environ['GCP_SERVICE_ACCOUNT_NAME']}" \
-                --enable-autorepair \
-                --enable-autoscaling \
-                --no-enable-autoupgrade \
-                --no-enable-basic-auth \
-                --no-enable-master-authorized-networks \
-                --num-nodes "1" \
-                --min-nodes "1" \
-                --max-nodes "1" \
-                --default-max-pods-per-node "110" \
-                --addons HorizontalPodAutoscaling,HttpLoadBalancing
-            """)
+        # Fetch the latest supported master version for the region
+        try:
+            result = subprocess.run(
+                [
+                    "gcloud", "container", "get-server-config",
+                    "--project", os.environ["GCP_PROJECT_NAME"],
+                    "--region", os.environ["GCP_REGION_NAME"],
+                    "--format=json"
+                ],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            server_config = json.loads(result.stdout)
+            latest_version = server_config["validMasterVersions"][0]
+            print(f"Using latest supported master version: {latest_version}")
+        except Exception as e:
+            print(f"Warning: Could not fetch latest master version, falling back to 'latest'. Error: {e}")
+            latest_version = "latest"
 
-            out = decode_bytes(out)
-            err = decode_bytes(err)
+        # Build gcloud cluster create command
+        exitcode, out, err = cmd(f"""
+        gcloud beta container clusters create "ctb-{os.environ['DEPLOYMENT_NAME']}" \
+            --project "{os.environ['GCP_PROJECT_NAME']}" \
+            --region "{os.environ['GCP_REGION_NAME']}" \
+            --cluster-version "{latest_version}" \
+            --enable-ip-alias \
+            --network "projects/{os.environ['GCP_PROJECT_NAME']}/global/networks/{os.environ['GCP_NETWORK_NAME']}" \
+            --subnetwork "projects/{os.environ['GCP_PROJECT_NAME']}/regions/{os.environ['GCP_REGION_NAME']}/subnetworks/{os.environ['GCP_SUBNETWORK_NAME']}" \
+            --machine-type "e2-highcpu-8" \
+            --image-type "COS" \
+            --disk-size "32" \
+            --disk-type "pd-ssd" \
+            --metadata disable-legacy-endpoints=true \
+            --service-account "{os.environ['GCP_SERVICE_ACCOUNT_NAME']}" \
+            --enable-autorepair \
+            --enable-autoscaling \
+            --no-enable-autoupgrade \
+            --no-enable-basic-auth \
+            --no-enable-master-authorized-networks \
+            --num-nodes "1" \
+            --min-nodes "1" \
+            --max-nodes "1" \
+            --default-max-pods-per-node "110" \
+            --addons HorizontalPodAutoscaling,HttpLoadBalancing
+        """)
 
-            if err:
-                if "NotFound" in err:
-                    print("Resource not found.")
-                else:
-                    raise Exception(err)
+        out = decode_bytes(out)
+        err = decode_bytes(err)
 
-    # def run_setup_gke(dev=False):
-#     validate_setup_gke()
-#     print("")
-#     print("Creating GKE cluster...")
-#     cmd("""
-#     gcloud beta container clusters create 'ctb-$DEPLOYMENT_NAME' \
-#         --project "$GCP_PROJECT_NAME" \
-#         --region "$GCP_REGION_NAME" \
-#         --cluster-version 1.21.11-gke.1100 \
-#         --enable-ip-alias \
-#         --network "projects/$GCP_PROJECT_NAME/global/networks/$GCP_NETWORK_NAME" \
-#         --subnetwork "projects/$GCP_PROJECT_NAME/regions/$GCP_REGION_NAME/subnetworks/$GCP_SUBNETWORK_NAME" \
-#         --machine-type "e2-highcpu-8" \
-#         --image-type "COS" \
-#         --disk-size "32" \
-#         --disk-type "pd-ssd" \
-#         --metadata disable-legacy-endpoints=true \
-#         --service-account "$GCP_SERVICE_ACCOUNT_NAME" \
-#         --enable-autorepair \
-#         --enable-autoscaling \
-#         --no-enable-autoupgrade \
-#         --no-enable-basic-auth \
-#         --no-enable-master-authorized-networks \
-#         --num-nodes "1" \
-#         --min-nodes "1" \
-#         --max-nodes "1" \
-#         --default-max-pods-per-node "110" \
-#         --addons HorizontalPodAutoscaling,HttpLoadBalancing
-#     """)
+        if err:
+            if "NotFound" in err:
+                print("Resource not found.")
+            else:
+                raise Exception(err)
+
+
+# def validate_setup_ess():
+#     validate_setup()
+#     required = (
+#         "ELASTIC_CLOUD_API_KEY",
+#         "ELASTIC_CLOUD_REGION",
+#         "ELASTICSEARCH_VERSION"
+#     )
+#     for variable in required:
+#         if not env(variable):
+#             print("")
+#             print("You must set these variables in {} to setup ESS:".format(env("ENVFILE")))
+#             print("")
+#             for variable in required:
+#                 print("  {}".format(variable))
+#             print("")
+#             sys.exit(1)
+
+def run_setup_gke(dev=False):
+    validate_setup_gke()
+    print("")
+    print("Creating GKE cluster...")
+    cmd("""
+    gcloud beta container clusters create 'ctb-$DEPLOYMENT_NAME' \
+        --project "$GCP_PROJECT_NAME" \
+        --region "$GCP_REGION_NAME" \
+        --cluster-version 1.21.11-gke.1100 \
+        --enable-ip-alias \
+        --network "projects/$GCP_PROJECT_NAME/global/networks/$GCP_NETWORK_NAME" \
+        --subnetwork "projects/$GCP_PROJECT_NAME/regions/$GCP_REGION_NAME/subnetworks/$GCP_SUBNETWORK_NAME" \
+        --machine-type "e2-highcpu-8" \
+        --image-type "COS" \
+        --disk-size "32" \
+        --disk-type "pd-ssd" \
+        --metadata disable-legacy-endpoints=true \
+        --service-account "$GCP_SERVICE_ACCOUNT_NAME" \
+        --enable-autorepair \
+        --enable-autoscaling \
+        --no-enable-autoupgrade \
+        --no-enable-basic-auth \
+        --no-enable-master-authorized-networks \
+        --num-nodes "1" \
+        --min-nodes "1" \
+        --max-nodes "1" \
+        --default-max-pods-per-node "110" \
+        --addons HorizontalPodAutoscaling,HttpLoadBalancing
+    """)
 
     # Verify that the GKE cluster was created
     print("")
@@ -464,45 +483,44 @@ def run_setup_ess(dev=False):
 
     # Ensure Slack connector is indexed in Elasticsearch
     print("")
-    # print("Checking if Slack connector exists in Elasticsearch...")
-    # update = False
-    # if not probe.status_ess_slack_connector():
-    #     print("...does not exist.")
-    #     print("")
-    #     print("Creating Slack connector...")
-    # else:
-    #     update = True
-    #     response = probe.get_ess_slack_connector()
-    #     os.environ["SLACK_ACTION_ID"] = response.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
-    #     print("...exists.")
-    #     print("")
-    #     print("Updating Slack connector...")
-    # payload = utils.load_template_json(os.path.join(env("BASEDIR"), "elasticsearch", "action-slack.json"))
-    # print(payload)
-    # # Kibana does not want these fields when updating an alert
-    # if update:
-    #     del payload["actionTypeId"]
-    # response_post = requests.request(
-    #     method="post" if not update else "put",
-    #     url="{}/api/actions/action{}".format(env("KIBANA_URL"), "" if not update else "/{}".format(os.environ["SLACK_ACTION_ID"])),
-    #     headers=constants.kibana_api_headers(),
-    #     json=payload,
-    #     timeout=30
-    # )
-    # response_get = probe.get_ess_slack_connector()
-    # if response_post.status_code in range(200, 299) and response_get.json().get("hits", {}).get("total", {}).get("value") > 0:
-    #     if not update:
-    #         print("...created.")
-    #     else:
-    #         print("...updated.")
-    #     os.environ["SLACK_ACTION_ID"] = response_get.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
-    # else:
-    #     print("...failure.")
-    #     if response_post.status_code in range(400, 499):
-    #         raise Exception(response_post.content)
-    # if not update:
-    #     response = probe.get_ess_slack_connector()
-    #     os.environ["SLACK_ACTION_ID"] = response.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
+    print("Checking if Slack connector exists in Elasticsearch...")
+    update = False
+    if not probe.status_ess_slack_connector():
+        print("...does not exist.")
+        print("")
+        print("Creating Slack connector...")
+    else:
+        update = True
+        response = probe.get_ess_slack_connector()
+        os.environ["SLACK_ACTION_ID"] = response.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
+        print("...exists.")
+        print("")
+        print("Updating Slack connector...")
+    payload = utils.load_template_json(os.path.join(env("BASEDIR"), "elasticsearch", "action-slack.json"))
+    # Kibana does not want these fields when updating an alert
+    if update:
+        del payload["actionTypeId"]
+    response_post = requests.request(
+        method="post" if not update else "put",
+        url="{}/api/actions/action{}".format(env("KIBANA_URL"), "" if not update else "/{}".format(os.environ["SLACK_ACTION_ID"])),
+        headers=constants.kibana_api_headers(),
+        json=payload,
+        timeout=30
+    )
+    response_get = probe.get_ess_slack_connector()
+    if response_post.status_code in range(200, 299) and response_get.json().get("hits", {}).get("total", {}).get("value") > 0:
+        if not update:
+            print("...created.")
+        else:
+            print("...updated.")
+        os.environ["SLACK_ACTION_ID"] = response_get.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
+    else:
+        print("...failure.")
+        if response_post.status_code in range(400, 499):
+            raise Exception(response_post.content)
+    if not update:
+        response = probe.get_ess_slack_connector()
+        os.environ["SLACK_ACTION_ID"] = response.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
 
     # Ensure Kibana alerts are indexed in Elasticsearch
     print("")
