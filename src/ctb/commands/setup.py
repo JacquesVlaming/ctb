@@ -226,7 +226,7 @@ def run_setup_gke(dev=False):
     # Start the stable scenario
     print("")
     print("Deploying the stable scenario on GKE.")
-    ctb.commands.start.run("stable", quiet=True)
+    ctb.commands.start.run("stable", quiet=False)
 
     print("")
     print("Finished setting up GKE.")
