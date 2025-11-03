@@ -31,26 +31,37 @@ profiles:
   build:
     artifacts:
     - image: ctb-emailservice
+      push: false
       context: hipstershop/scenarios/stable/src/emailservice
     - image: ctb-productcatalogservice
+      push: false
       context: hipstershop/scenarios/stable/src/productcatalogservice
     - image: ctb-recommendationservice
+      push: false
       context: hipstershop/scenarios/stable/src/recommendationservice
     - image: ctb-shippingservice
+      push: false
       context: hipstershop/scenarios/stable/src/shippingservice
     - image: ctb-checkoutservice
+      push: false
       context: hipstershop/scenarios/stable/src/checkoutservice
     - image: ctb-paymentservice
+      push: false
       context: hipstershop/scenarios/stable/src/paymentservice
     - image: ctb-currencyservice
+      push: false
       context: hipstershop/scenarios/stable/src/currencyservice
     - image: ctb-cartservice
+      push: false
       context: hipstershop/scenarios/stable/src/cartservice
     - image: ctb-frontend
+      push: false
       context: hipstershop/scenarios/stable/src/frontend
     - image: ctb-loadgenerator
+      push: false
       context: hipstershop/scenarios/stable/src/loadgenerator
     - image: ctb-adservice
+      push: false
       context: hipstershop/scenarios/stable/src/adservice
       docker:
         buildArgs:
@@ -65,6 +76,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-shippingservice
+      push: false
       context: hipstershop/scenarios/bind-localhost/src/shippingservice
   deploy:
     kubectl:
@@ -76,6 +88,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-paymentservice
+      push: false
       context: hipstershop/scenarios/card-validation-error/src/paymentservice
   deploy:
     kubectl:
@@ -87,6 +100,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-frontend
+      push: false
       context: hipstershop/scenarios/cart-tls-required/src/frontend
   deploy:
     kubectl:
@@ -98,6 +112,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-recommendationservice
+      push: false
       context: hipstershop/scenarios/demo/src/recommendationservice
   deploy:
     kubectl:
@@ -109,6 +124,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-paymentservice
+      push: false
       context: hipstershop/scenarios/js-string-addition/src/paymentservice
   deploy:
     kubectl:
@@ -120,6 +136,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-adservice
+      push: false
       context: hipstershop/scenarios/null-pointer-exception/src/adservice
       docker:
         buildArgs:
@@ -134,6 +151,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-frontend
+      push: false
       context: hipstershop/scenarios/redirect-loop/src/frontend
   deploy:
     kubectl:
@@ -145,6 +163,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-adservice
+      push: false
       context: hipstershop/scenarios/slow-query/src/adservice
       docker:
         buildArgs:
@@ -159,6 +178,7 @@ profiles:
   build:
     artifacts:
     - image: ctb-loadgenerator
+      push: false
       context: hipstershop/scenarios/stable/src/loadgenerator
   deploy:
     kubectl:
@@ -170,8 +190,10 @@ profiles:
   build:
     artifacts:
     - image: ctb-emailservice
+      push: false
       context: hipstershop/scenarios/unicode-encode-error/src/emailservice
     - image: ctb-loadgenerator
+      push: false
       context: hipstershop/scenarios/unicode-encode-error/src/loadgenerator
   deploy:
     kubectl:
