@@ -29,12 +29,35 @@ def get_ess_operator_user():
         timeout=30
     )
 
+# def get_ess_slack_connector():
+#     return requests.get(
+#         url="{}/.kibana/_search?q=(type:action+AND+slack)".format(env("ELASTICSEARCH_URL")),
+#         auth=(env("ELASTICSEARCH_USERNAME"), env("ELASTICSEARCH_PASSWORD")),
+#         timeout=30
+#     )
+
 def get_ess_slack_connector():
-    return requests.get(
-        url="{}/.kibana/_search?q=(type:action+AND+slack)".format(env("ELASTICSEARCH_URL")),
+    """Fetch Slack connectors from Kibana safely using the Connectors API."""
+    response = requests.get(
+        url=f"{env('KIBANA_URL')}/api/actions/connectors",
         auth=(env("ELASTICSEARCH_USERNAME"), env("ELASTICSEARCH_PASSWORD")),
+        headers={
+            "kbn-xsrf": "true",
+            "Content-Type": "application/json"
+        },
         timeout=30
     )
+
+    response.raise_for_status()
+    connectors = response.json()
+
+    # Filter only Slack connectors
+    slack_connectors = [
+        c for c in connectors if c.get("connector_type_id") == ".slack"
+    ]
+    return slack_connectors
+
+
 
 def status_gke():
     if not env("GCP_PROJECT_NAME") or not env("GCP_REGION_NAME") or not env("DEPLOYMENT_NAME"):
