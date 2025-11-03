@@ -279,7 +279,7 @@ def run():
                 continue
 
         # Display statuses
-        names = services.keys()
+        names = list(services.keys())
         names.sort()
         for name in names:
             desired = services[name]["desired"]
