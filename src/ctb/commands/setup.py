@@ -68,35 +68,90 @@ def validate_setup_ess():
             print("")
             sys.exit(1)
 
-def run_setup_gke(dev=False):
-    validate_setup_gke()
-    print("")
-    print("Creating GKE cluster...")
-    cmd("""
-    gcloud beta container clusters create 'ctb-$DEPLOYMENT_NAME' \
-        --project "$GCP_PROJECT_NAME" \
-        --region "$GCP_REGION_NAME" \
-        --cluster-version 1.21.11-gke.1100 \
-        --enable-ip-alias \
-        --network "projects/$GCP_PROJECT_NAME/global/networks/$GCP_NETWORK_NAME" \
-        --subnetwork "projects/$GCP_PROJECT_NAME/regions/$GCP_REGION_NAME/subnetworks/$GCP_SUBNETWORK_NAME" \
-        --machine-type "e2-highcpu-8" \
-        --image-type "COS" \
-        --disk-size "32" \
-        --disk-type "pd-ssd" \
-        --metadata disable-legacy-endpoints=true \
-        --service-account "$GCP_SERVICE_ACCOUNT_NAME" \
-        --enable-autorepair \
-        --enable-autoscaling \
-        --no-enable-autoupgrade \
-        --no-enable-basic-auth \
-        --no-enable-master-authorized-networks \
-        --num-nodes "1" \
-        --min-nodes "1" \
-        --max-nodes "1" \
-        --default-max-pods-per-node "110" \
-        --addons HorizontalPodAutoscaling,HttpLoadBalancing
-    """)
+    def run_setup_gke(dev=False):
+        validate_setup_gke()
+        print("")
+        print("Creating GKE cluster...")
+
+        # Fetch the latest supported master version for the region
+        import json
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                [
+                    "gcloud", "container", "get-server-config",
+                    "--project", env("GCP_PROJECT_NAME"),
+                    "--region", env("GCP_REGION_NAME"),
+                    "--format=json"
+                ],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            server_config = json.loads(result.stdout)
+            latest_version = server_config["validMasterVersions"][0]
+            print(f"Using latest supported master version: {latest_version}")
+        except Exception as e:
+            print(f"Warning: Could not fetch latest master version, falling back to default. Error: {e}")
+            latest_version = "latest"  # gcloud will pick the default
+
+        # Build gcloud cluster create command
+        cmd(f"""
+        gcloud beta container clusters create "ctb-{env('DEPLOYMENT_NAME')}" \
+            --project "{env('GCP_PROJECT_NAME')}" \
+            --region "{env('GCP_REGION_NAME')}" \
+            --cluster-version "{latest_version}" \
+            --enable-ip-alias \
+            --network "projects/{env('GCP_PROJECT_NAME')}/global/networks/{env('GCP_NETWORK_NAME')}" \
+            --subnetwork "projects/{env('GCP_PROJECT_NAME')}/regions/{env('GCP_REGION_NAME')}/subnetworks/{env('GCP_SUBNETWORK_NAME')}" \
+            --machine-type "e2-highcpu-8" \
+            --image-type "COS" \
+            --disk-size "32" \
+            --disk-type "pd-ssd" \
+            --metadata disable-legacy-endpoints=true \
+            --service-account "{env('GCP_SERVICE_ACCOUNT_NAME')}" \
+            --enable-autorepair \
+            --enable-autoscaling \
+            --no-enable-autoupgrade \
+            --no-enable-basic-auth \
+            --no-enable-master-authorized-networks \
+            --num-nodes "1" \
+            --min-nodes "1" \
+            --max-nodes "1" \
+            --default-max-pods-per-node "110" \
+            --addons HorizontalPodAutoscaling,HttpLoadBalancing
+        """)
+
+    # def run_setup_gke(dev=False):
+#     validate_setup_gke()
+#     print("")
+#     print("Creating GKE cluster...")
+#     cmd("""
+#     gcloud beta container clusters create 'ctb-$DEPLOYMENT_NAME' \
+#         --project "$GCP_PROJECT_NAME" \
+#         --region "$GCP_REGION_NAME" \
+#         --cluster-version 1.21.11-gke.1100 \
+#         --enable-ip-alias \
+#         --network "projects/$GCP_PROJECT_NAME/global/networks/$GCP_NETWORK_NAME" \
+#         --subnetwork "projects/$GCP_PROJECT_NAME/regions/$GCP_REGION_NAME/subnetworks/$GCP_SUBNETWORK_NAME" \
+#         --machine-type "e2-highcpu-8" \
+#         --image-type "COS" \
+#         --disk-size "32" \
+#         --disk-type "pd-ssd" \
+#         --metadata disable-legacy-endpoints=true \
+#         --service-account "$GCP_SERVICE_ACCOUNT_NAME" \
+#         --enable-autorepair \
+#         --enable-autoscaling \
+#         --no-enable-autoupgrade \
+#         --no-enable-basic-auth \
+#         --no-enable-master-authorized-networks \
+#         --num-nodes "1" \
+#         --min-nodes "1" \
+#         --max-nodes "1" \
+#         --default-max-pods-per-node "110" \
+#         --addons HorizontalPodAutoscaling,HttpLoadBalancing
+#     """)
 
     # Verify that the GKE cluster was created
     print("")
