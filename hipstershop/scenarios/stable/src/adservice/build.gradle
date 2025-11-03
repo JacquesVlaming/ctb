@@ -1,19 +1,20 @@
 description = 'Ad Service'
 
-def grpcVersion = "1.17.0"
-def jacksonVersion = "2.9.6"
-def apmVersion = "1.16.0"
-def esVersion = System.getenv('ELASTICSEARCH_VERSION') ?: "9.2.0" // fallback if env var missing
-
 group = "adservice"
 version = "0.1.0-SNAPSHOT"
 
 buildscript {
+    // Define versions here so they are visible inside buildscript.dependencies
+    def grpcVersion = "1.17.0"
+    def jacksonVersion = "2.9.6"
+    def apmVersion = "1.16.0"
+    def esVersion = System.getenv('ELASTICSEARCH_VERSION') ?: "9.2.0" // fallback
+
     repositories {
         mavenCentral()
         mavenLocal()
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://artifacts.elastic.co/maven" } // <- Elastic repo added
+        maven { url "https://artifacts.elastic.co/maven" }
     }
     dependencies {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.3'
@@ -34,7 +35,7 @@ apply plugin: 'application'
 repositories {
     mavenCentral()
     mavenLocal()
-    maven { url "https://artifacts.elastic.co/maven" } // <- Elastic repo for runtime deps
+    maven { url "https://artifacts.elastic.co/maven" }
 }
 
 tasks.withType(JavaCompile) {
@@ -52,19 +53,19 @@ dependencies {
         implementation fileTree(dir: offlineCompile, include: '*.jar')
     } else {
         implementation "com.google.api.grpc:proto-google-common-protos:1.12.0"
-        implementation "io.grpc:grpc-protobuf:${grpcVersion}"
-        implementation "io.grpc:grpc-stub:${grpcVersion}"
-        implementation "io.grpc:grpc-netty:${grpcVersion}"
-        implementation "io.grpc:grpc-services:${grpcVersion}"
-        implementation "co.elastic.apm:apm-agent-attach:${apmVersion}"
-        implementation "co.elastic.apm:apm-agent-api:${apmVersion}"
-        implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${esVersion}"
+        implementation "io.grpc:grpc-protobuf:1.17.0"
+        implementation "io.grpc:grpc-stub:1.17.0"
+        implementation "io.grpc:grpc-netty:1.17.0"
+        implementation "io.grpc:grpc-services:1.17.0"
+        implementation "co.elastic.apm:apm-agent-attach:1.16.0"
+        implementation "co.elastic.apm:apm-agent-api:1.16.0"
+        implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${System.getenv('ELASTICSEARCH_VERSION') ?: '9.2.0'}"
         implementation "co.elastic.logging:log4j2-ecs-layout:0.3.0"
         implementation "org.apache.logging.log4j:log4j-slf4j18-impl:2.12.1"
         implementation "org.apache.logging.log4j:log4j-core:2.12.1"
 
-        runtimeOnly "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
-        runtimeOnly "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+        runtimeOnly "com.fasterxml.jackson.core:jackson-core:2.9.6"
+        runtimeOnly "com.fasterxml.jackson.core:jackson-databind:2.9.6"
         runtimeOnly "io.netty:netty-tcnative-boringssl-static:2.0.8.Final"
     }
 }
@@ -75,7 +76,7 @@ protobuf {
     }
     plugins {
         grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+            artifact = "io.grpc:protoc-gen-grpc-java:1.17.0"
         }
     }
     generateProtoTasks {
