@@ -392,46 +392,46 @@ def run_setup_ess(dev=False):
     else:
         print("...exists.")
 
-    # Ensure Slack connector is indexed in Elasticsearch
-    print("")
-    print("Checking if Slack connector exists in Elasticsearch...")
-    update = False
-    if not probe.status_ess_slack_connector():
-        print("...does not exist.")
-        print("")
-        print("Creating Slack connector...")
-    else:
-        update = True
-        response = probe.get_ess_slack_connector()
-        os.environ["SLACK_ACTION_ID"] = response.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
-        print("...exists.")
-        print("")
-        print("Updating Slack connector...")
-    payload = utils.load_template_json(os.path.join(env("BASEDIR"), "elasticsearch", "action-slack.json"))
-    # Kibana does not want these fields when updating an alert
-    if update:
-        del payload["actionTypeId"]
-    response_post = requests.request(
-        method="post" if not update else "put",
-        url="{}/api/actions/action{}".format(env("KIBANA_URL"), "" if not update else "/{}".format(os.environ["SLACK_ACTION_ID"])),
-        headers=constants.kibana_api_headers(),
-        json=payload,
-        timeout=30
-    )
-    response_get = probe.get_ess_slack_connector()
-    if response_post.status_code in range(200, 299) and response_get.json().get("hits", {}).get("total", {}).get("value") > 0:
-        if not update:
-            print("...created.")
-        else:
-            print("...updated.")
-        os.environ["SLACK_ACTION_ID"] = response_get.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
-    else:
-        print("...failure.")
-        if response_post.status_code in range(400, 499):
-            raise Exception(response_post.content)
-    if not update:
-        response = probe.get_ess_slack_connector()
-        os.environ["SLACK_ACTION_ID"] = response.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
+    # # Ensure Slack connector is indexed in Elasticsearch
+    # print("")
+    # print("Checking if Slack connector exists in Elasticsearch...")
+    # update = False
+    # if not probe.status_ess_slack_connector():
+    #     print("...does not exist.")
+    #     print("")
+    #     print("Creating Slack connector...")
+    # else:
+    #     update = True
+    #     response = probe.get_ess_slack_connector()
+    #     os.environ["SLACK_ACTION_ID"] = response.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
+    #     print("...exists.")
+    #     print("")
+    #     print("Updating Slack connector...")
+    # payload = utils.load_template_json(os.path.join(env("BASEDIR"), "elasticsearch", "action-slack.json"))
+    # # Kibana does not want these fields when updating an alert
+    # if update:
+    #     del payload["actionTypeId"]
+    # response_post = requests.request(
+    #     method="post" if not update else "put",
+    #     url="{}/api/actions/action{}".format(env("KIBANA_URL"), "" if not update else "/{}".format(os.environ["SLACK_ACTION_ID"])),
+    #     headers=constants.kibana_api_headers(),
+    #     json=payload,
+    #     timeout=30
+    # )
+    # response_get = probe.get_ess_slack_connector()
+    # if response_post.status_code in range(200, 299) and response_get.json().get("hits", {}).get("total", {}).get("value") > 0:
+    #     if not update:
+    #         print("...created.")
+    #     else:
+    #         print("...updated.")
+    #     os.environ["SLACK_ACTION_ID"] = response_get.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
+    # else:
+    #     print("...failure.")
+    #     if response_post.status_code in range(400, 499):
+    #         raise Exception(response_post.content)
+    # if not update:
+    #     response = probe.get_ess_slack_connector()
+    #     os.environ["SLACK_ACTION_ID"] = response.json()["hits"]["hits"][0]["_id"].split(":", 1)[1]
 
     # Ensure Kibana alerts are indexed in Elasticsearch
     print("")
