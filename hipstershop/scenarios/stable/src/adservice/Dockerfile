@@ -15,14 +15,14 @@ COPY gradle gradle
 RUN chmod +x gradlew
 
 # Download dependencies with Gradle
-RUN ./gradlew downloadRepos -PelasticsearchVersion=${ELASTICSEARCH_VERSION} --stacktrace --no-daemon
+RUN ./gradlew downloadRepos -PelasticsearchVersion="7.9.3" --stacktrace --no-daemon
 
 # Copy the full source
 COPY . .
 
 # Build the project
 RUN chmod +x gradlew
-RUN ./gradlew installDist -PelasticsearchVersion=${ELASTICSEARCH_VERSION} --stacktrace --no-daemon
+RUN ./gradlew installDist -PelasticsearchVersion="7.9.3" --stacktrace --no-daemon
 
 # --- Runtime Stage ---
 FROM openjdk:8-slim
