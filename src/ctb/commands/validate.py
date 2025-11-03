@@ -141,12 +141,14 @@ def run():
     report("docker running", run_validate_docker_running)
     report("kubectl installed", run_validate_kubectl_installed)
     exitcode, out, err = cmd("kubectl config current-context", False)
-    current_context = out.strip()
-    required_context = "gke_{}_{}_ctb-{}".format(env("GCP_PROJECT_NAME"), env("GCP_REGION_NAME"), env("DEPLOYMENT_NAME"))
+    if isinstance(out, bytes):
+        current_context = out.decode("utf-8").strip()
+    else:
+        current_context = out.strip()
+
+    required_context = f"gke_{env('GCP_PROJECT_NAME')}_{env('GCP_REGION_NAME')}_ctb-{env('DEPLOYMENT_NAME')}"
     sys.stdout.write("  kubectl context: ")
     sys.stdout.flush()
-    if isinstance(current_context, bytes):
-        current_context = current_context.decode("utf-8")
     if current_context == required_context:
         sys.stdout.write(colored(current_context, "green", attrs=["bold"]))
         sys.stdout.write("\n")
