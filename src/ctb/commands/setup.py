@@ -68,21 +68,21 @@ def validate_setup_ess():
             print("")
             sys.exit(1)
 
+    import json
+    import subprocess
+    import os
+
     def run_setup_gke(dev=False):
         validate_setup_gke()
-        print("")
-        print("Creating GKE cluster...")
+        print("\nCreating GKE cluster...")
 
         # Fetch the latest supported master version for the region
-        import json
-        import subprocess
-
         try:
             result = subprocess.run(
                 [
                     "gcloud", "container", "get-server-config",
-                    "--project", env("GCP_PROJECT_NAME"),
-                    "--region", env("GCP_REGION_NAME"),
+                    "--project", os.environ["GCP_PROJECT_NAME"],
+                    "--region", os.environ["GCP_REGION_NAME"],
                     "--format=json"
                 ],
                 capture_output=True,
@@ -93,24 +93,24 @@ def validate_setup_ess():
             latest_version = server_config["validMasterVersions"][0]
             print(f"Using latest supported master version: {latest_version}")
         except Exception as e:
-            print(f"Warning: Could not fetch latest master version, falling back to default. Error: {e}")
-            latest_version = "latest"  # gcloud will pick the default
+            print(f"Warning: Could not fetch latest master version, falling back to 'latest'. Error: {e}")
+            latest_version = "latest"
 
         # Build gcloud cluster create command
         cmd(f"""
-        gcloud beta container clusters create "ctb-{env('DEPLOYMENT_NAME')}" \
-            --project "{env('GCP_PROJECT_NAME')}" \
-            --region "{env('GCP_REGION_NAME')}" \
+        gcloud beta container clusters create "ctb-{os.environ['DEPLOYMENT_NAME']}" \
+            --project "{os.environ['GCP_PROJECT_NAME']}" \
+            --region "{os.environ['GCP_REGION_NAME']}" \
             --cluster-version "{latest_version}" \
             --enable-ip-alias \
-            --network "projects/{env('GCP_PROJECT_NAME')}/global/networks/{env('GCP_NETWORK_NAME')}" \
-            --subnetwork "projects/{env('GCP_PROJECT_NAME')}/regions/{env('GCP_REGION_NAME')}/subnetworks/{env('GCP_SUBNETWORK_NAME')}" \
+            --network "projects/{os.environ['GCP_PROJECT_NAME']}/global/networks/{os.environ['GCP_NETWORK_NAME']}" \
+            --subnetwork "projects/{os.environ['GCP_PROJECT_NAME']}/regions/{os.environ['GCP_REGION_NAME']}/subnetworks/{os.environ['GCP_SUBNETWORK_NAME']}" \
             --machine-type "e2-highcpu-8" \
             --image-type "COS" \
             --disk-size "32" \
             --disk-type "pd-ssd" \
             --metadata disable-legacy-endpoints=true \
-            --service-account "{env('GCP_SERVICE_ACCOUNT_NAME')}" \
+            --service-account "{os.environ['GCP_SERVICE_ACCOUNT_NAME']}" \
             --enable-autorepair \
             --enable-autoscaling \
             --no-enable-autoupgrade \
