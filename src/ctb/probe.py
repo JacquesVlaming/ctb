@@ -47,49 +47,19 @@ def get_ess_slack_connector():
 
 import re
 
+
 def status_gke():
-    project = env("GCP_PROJECT_NAME")
-    region = env("GCP_REGION_NAME")
-    deployment = env("DEPLOYMENT_NAME")
-
-    if not project or not region or not deployment:
+    if not env("GCP_PROJECT_NAME") or not env("GCP_REGION_NAME") or not env("DEPLOYMENT_NAME"):
         return None
-
-    cluster_name = f"ctb-{deployment}"
-    exitcode, out, err = cmd(f"""
-    gcloud beta container clusters describe "{cluster_name}" \
-        --region="{region}" \
-        --project="{project}" \
-        --format="value(status)"
+    exitcode, out, err = cmd("""
+    gcloud beta container clusters describe "projects/$GCP_PROJECT_NAME/zones/$GCP_REGION_NAME/clusters/ctb-$DEPLOYMENT_NAME" --region=$GCP_REGION_NAME
     """, stdout=False)
-
-    # Decode to string if bytes
-    if isinstance(err, bytes):
-        err = err.decode("utf-8", errors="ignore")
-    if isinstance(out, bytes):
-        out = out.decode("utf-8", errors="ignore").strip()
-
-    if err and "Not found" in err:
-        return False  # cluster not yet created
-    elif err:
+    if err:
         raise Exception(err)
-
-    return out.strip() == "RUNNING"
-
-
-
-# def status_gke():
-#     if not env("GCP_PROJECT_NAME") or not env("GCP_REGION_NAME") or not env("DEPLOYMENT_NAME"):
-#         return None
-#     exitcode, out, err = cmd("""
-#     gcloud beta container clusters describe "projects/$GCP_PROJECT_NAME/zones/$GCP_REGION_NAME/clusters/ctb-$DEPLOYMENT_NAME" --region=$GCP_REGION_NAME
-#     """, stdout=False)
-#     if err:
-#         raise Exception(err)
-#     status = re.findall(patterns.STATUS, out)
-#     if status:
-#         return status[0] == "RUNNING"
-#     return False
+    status = re.findall(patterns.STATUS, out)
+    if status:
+        return status[0] == "RUNNING"
+    return False
 
 def status_ess():
     if not env("ELASTIC_CLOUD_DEPLOYMENT_ID") or not env("ELASTIC_CLOUD_API_KEY"):
