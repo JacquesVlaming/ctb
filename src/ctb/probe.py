@@ -116,13 +116,32 @@ def status_ess_operator_user():
         raise Exception(response)
     return response.status_code == 200
 
+# def status_ess_slack_connector():
+#     if not env("ELASTIC_CLOUD_DEPLOYMENT_ID") or not env("ELASTIC_CLOUD_API_KEY") or not env("ELASTICSEARCH_URL") or not env("KIBANA_URL") or not env("ELASTICSEARCH_USERNAME") or not env("ELASTICSEARCH_PASSWORD"):
+#         return None
+#     response = get_ess_slack_connector()
+#     if response.status_code in range(400, 599) and response.status_code not in [404, 410]:
+#         raise Exception(response)
+#     return response.json().get("hits", {}).get("total", {}).get("value") > 0
+
 def status_ess_slack_connector():
-    if not env("ELASTIC_CLOUD_DEPLOYMENT_ID") or not env("ELASTIC_CLOUD_API_KEY") or not env("ELASTICSEARCH_URL") or not env("KIBANA_URL") or not env("ELASTICSEARCH_USERNAME") or not env("ELASTICSEARCH_PASSWORD"):
+    # Return None if required env vars are missing
+    if not env("ELASTIC_CLOUD_DEPLOYMENT_ID") or not env("ELASTIC_CLOUD_API_KEY") \
+       or not env("ELASTICSEARCH_URL") or not env("KIBANA_URL") \
+       or not env("ELASTICSEARCH_USERNAME") or not env("ELASTICSEARCH_PASSWORD"):
         return None
+
     response = get_ess_slack_connector()
+
+    # Ensure request was successful
     if response.status_code in range(400, 599) and response.status_code not in [404, 410]:
         raise Exception(response)
-    return response.json().get("hits", {}).get("total", {}).get("value") > 0
+
+    # response.json() is now a list
+    connectors = response.json()
+    slack_connectors = [c for c in connectors if c.get("connector_type_id") == ".slack"]
+    return len(slack_connectors) > 0
+
 
 def status_frontend():
     if not env("FRONTEND_URL"):
