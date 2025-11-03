@@ -63,16 +63,18 @@ def status_gke():
         --format="value(status)"
     """, stdout=False)
 
-    if err and b"Not found" in err:
-        return False  # cluster does not exist yet
+    # Decode to string if bytes
+    if isinstance(err, bytes):
+        err = err.decode("utf-8", errors="ignore")
+    if isinstance(out, bytes):
+        out = out.decode("utf-8", errors="ignore").strip()
+
+    if err and "Not found" in err:
+        return False  # cluster not yet created
     elif err:
         raise Exception(err)
 
-    # Decode output if needed
-    if isinstance(out, bytes):
-        out = out.decode("utf-8").strip()
-
-    return out == "RUNNING"
+    return out.strip() == "RUNNING"
 
 
 
