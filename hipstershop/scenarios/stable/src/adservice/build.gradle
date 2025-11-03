@@ -1,20 +1,24 @@
 description = 'Ad Service'
 
+def grpcVersion = "1.17.0"
+def jacksonVersion = "2.9.6"
+def apmVersion = "1.16.0"
+def esVersion = System.getenv('ELASTICSEARCH_VERSION')
+
 group = "adservice"
 version = "0.1.0-SNAPSHOT"
 
 buildscript {
-    // Define versions here so they are visible inside buildscript.dependencies
-    def grpcVersion = "1.17.0"
-    def jacksonVersion = "2.9.6"
+
     def apmVersion = "1.16.0"
-    def esVersion = System.getenv('ELASTICSEARCH_VERSION') ?: "9.2.0" // fallback
+    def esVersion = System.getenv('ELASTICSEARCH_VERSION')
 
     repositories {
         mavenCentral()
         mavenLocal()
-        maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://artifacts.elastic.co/maven" }
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.3'
@@ -30,12 +34,10 @@ buildscript {
 apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
-apply plugin: 'application'
 
 repositories {
     mavenCentral()
     mavenLocal()
-    maven { url "https://artifacts.elastic.co/maven" }
 }
 
 tasks.withType(JavaCompile) {
@@ -50,23 +52,32 @@ ext {
 
 dependencies {
     if (speed) {
-        implementation fileTree(dir: offlineCompile, include: '*.jar')
+        compile fileTree(dir: offlineCompile, include: '*.jar')
     } else {
-        implementation "com.google.api.grpc:proto-google-common-protos:1.12.0"
-        implementation "io.grpc:grpc-protobuf:1.17.0"
-        implementation "io.grpc:grpc-stub:1.17.0"
-        implementation "io.grpc:grpc-netty:1.17.0"
-        implementation "io.grpc:grpc-services:1.17.0"
-        implementation "co.elastic.apm:apm-agent-attach:1.16.0"
-        implementation "co.elastic.apm:apm-agent-api:1.16.0"
-        implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${System.getenv('ELASTICSEARCH_VERSION') ?: '9.2.0'}"
-        implementation "co.elastic.logging:log4j2-ecs-layout:0.3.0"
-        implementation "org.apache.logging.log4j:log4j-slf4j18-impl:2.12.1"
-        implementation "org.apache.logging.log4j:log4j-core:2.12.1"
+        compile "com.google.api.grpc:proto-google-common-protos:1.12.0",
+                "io.grpc:grpc-protobuf:${grpcVersion}",
+                "io.grpc:grpc-stub:${grpcVersion}",
+                "io.grpc:grpc-netty:${grpcVersion}",
+                "io.grpc:grpc-services:${grpcVersion}",
+                "co.elastic.apm:apm-agent-attach:${apmVersion}",
+                //files('libs/apm-agent-attach-1.15.1-SNAPSHOT.jar'),
+                "co.elastic.apm:apm-agent-api:${apmVersion}",
 
-        runtimeOnly "com.fasterxml.jackson.core:jackson-core:2.9.6"
-        runtimeOnly "com.fasterxml.jackson.core:jackson-databind:2.9.6"
-        runtimeOnly "io.netty:netty-tcnative-boringssl-static:2.0.8.Final"
+                "org.elasticsearch.client:elasticsearch-rest-high-level-client:${esVersion}",
+                "co.elastic.logging:log4j2-ecs-layout:0.3.0",
+                "org.apache.logging.log4j:log4j-slf4j18-impl:2.12.1",
+                "org.apache.logging.log4j:log4j-core:2.12.1"
+
+        runtime "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}",
+                "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}",
+                "io.netty:netty-tcnative-boringssl-static:2.0.8.Final",
+                "co.elastic.apm:apm-agent-attach:${apmVersion}",
+                //files('libs/apm-agent-attach-1.15.1-SNAPSHOT.jar'),
+                "co.elastic.apm:apm-agent-api:${apmVersion}",
+                "org.elasticsearch.client:elasticsearch-rest-high-level-client:${esVersion}",
+                "co.elastic.logging:log4j2-ecs-layout:0.3.0",
+                "org.apache.logging.log4j:log4j-slf4j18-impl:2.12.1",
+                "org.apache.logging.log4j:log4j-core:2.12.1"
     }
 }
 
@@ -76,7 +87,7 @@ protobuf {
     }
     plugins {
         grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.17.0"
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
         }
     }
     generateProtoTasks {
@@ -87,6 +98,7 @@ protobuf {
     }
 }
 
+// Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
 sourceSets {
     main {
         java {
@@ -97,12 +109,17 @@ sourceSets {
     }
 }
 
+// Provide convenience executables for trying out the examples.
+apply plugin: 'application'
+
 startScripts.enabled = false
 
+// This to cache dependencies during Docker image building. First build will take time.
+// Subsequent build will be incremental.
 task downloadRepos(type: Copy) {
-    from configurations.compileClasspath
+    from configurations.compile
     into offlineCompile
-    from configurations.runtimeClasspath
+    from configurations.runtime
     into offlineCompile
 }
 
@@ -110,14 +127,14 @@ task adService(type: CreateStartScripts) {
     mainClassName = 'hipstershop.AdService'
     applicationName = 'AdService'
     outputDir = new File(project.buildDir, 'tmp')
-    classpath = jar.outputs.files + project.configurations.runtimeClasspath
+    classpath = jar.outputs.files + project.configurations.runtime
 }
 
 task adServiceClient(type: CreateStartScripts) {
     mainClassName = 'hipstershop.AdServiceClient'
     applicationName = 'AdServiceClient'
     outputDir = new File(project.buildDir, 'tmp')
-    classpath = jar.outputs.files + project.configurations.runtimeClasspath
+    classpath = jar.outputs.files + project.configurations.runtime
 }
 
 applicationDistribution.into('bin') {
