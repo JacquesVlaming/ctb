@@ -12,7 +12,7 @@ version = "0.1.0-SNAPSHOT"
 buildscript {
 
     def apmVersion = "1.16.0"
-    def esVersion = System.getenv('ELASTICSEARCH_VERSION')
+    def esVersion = "7.9.3"
 
     repositories {
         mavenCentral()
