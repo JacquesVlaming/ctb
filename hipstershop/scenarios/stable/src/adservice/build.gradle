@@ -3,7 +3,8 @@ description = 'Ad Service'
 def grpcVersion = "1.17.0"
 def jacksonVersion = "2.9.6"
 def apmVersion = "1.16.0"
-def esVersion = System.getenv('ELASTICSEARCH_VERSION')
+// def esVersion = System.getenv('ELASTICSEARCH_VERSION')
+def esVersion = "7.9.3"
 
 group = "adservice"
 version = "0.1.0-SNAPSHOT"
