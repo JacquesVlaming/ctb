@@ -81,7 +81,6 @@ def run_setup_gke(dev=False):
             --network "projects/$GCP_PROJECT_NAME/global/networks/$GCP_NETWORK_NAME" \
             --subnetwork "projects/$GCP_PROJECT_NAME/regions/$GCP_REGION_NAME/subnetworks/$GCP_SUBNETWORK_NAME" \
             --machine-type "e2-highcpu-8" \
-            --image-type "COS" \
             --disk-size "32" \
             --disk-type "pd-ssd" \
             --metadata disable-legacy-endpoints=true \
