@@ -262,6 +262,10 @@ def run():
             except:
                 continue
         exitcode, out, err = cmd("""kubectl get daemonsets --all-namespaces -o=go-template='{{range .items}}{{.metadata.name}}\t{{.status.desiredNumberScheduled}}/{{.status.numberReady}}{{printf "\\n"}}{{end}}'""", False)
+
+        if isinstance(out, bytes):
+            out = out.decode("utf-8")
+
         for line in out.split("\n"):
             if not line:
                 continue
