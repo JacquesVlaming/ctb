@@ -48,15 +48,35 @@ def get_ess_slack_connector():
 def status_gke():
     if not env("GCP_PROJECT_NAME") or not env("GCP_REGION_NAME") or not env("DEPLOYMENT_NAME"):
         return None
+
     exitcode, out, err = cmd("""
     gcloud beta container clusters describe "projects/$GCP_PROJECT_NAME/zones/$GCP_REGION_NAME/clusters/ctb-$DEPLOYMENT_NAME" --region=$GCP_REGION_NAME
     """, stdout=False)
+
     if err:
         raise Exception(err)
-    status = re.findall(patterns.STATUS, out)
+
+    # Decode 'out' from bytes to string
+    out_str = out.decode("utf-8")
+
+    status = re.findall(patterns.STATUS, out_str)
     if status:
         return status[0] == "RUNNING"
     return False
+
+
+# def status_gke():
+#     if not env("GCP_PROJECT_NAME") or not env("GCP_REGION_NAME") or not env("DEPLOYMENT_NAME"):
+#         return None
+#     exitcode, out, err = cmd("""
+#     gcloud beta container clusters describe "projects/$GCP_PROJECT_NAME/zones/$GCP_REGION_NAME/clusters/ctb-$DEPLOYMENT_NAME" --region=$GCP_REGION_NAME
+#     """, stdout=False)
+#     if err:
+#         raise Exception(err)
+#     status = re.findall(patterns.STATUS, out)
+#     if status:
+#         return status[0] == "RUNNING"
+#     return False
 
 def status_ess():
     if not env("ELASTIC_CLOUD_DEPLOYMENT_ID") or not env("ELASTIC_CLOUD_API_KEY"):
