@@ -25,7 +25,12 @@ def create_kibana_alert(task):
     alert, service = task
     os.environ["SERVICE_NAME"] = service["name"]
     os.environ["SERVICE_NAME_LOWERCASE"] = service["name"].lower()
-    alert_id = "7fdcfd30-9309-11eb-a1a7-{}".format(hashlib.sha1("{}-{}".format(alert["id"], service["id"])).hexdigest()[0:12])
+    # alert_id = "7fdcfd30-9309-11eb-a1a7-{}".format(hashlib.sha1("{}-{}".format(alert["id"], service["id"])).hexdigest()[0:12])
+    alert_id = "7fdcfd30-9309-11eb-a1a7-{}".format(
+        hashlib.sha1(
+            "{}-{}".format(alert["id"], service["id"]).encode("utf-8")
+        ).hexdigest()[0:12]
+    )
     url_get = "{}/.kibana/_search?q=(type:alert+AND+{}+AND+{})".format(env("ELASTICSEARCH_URL"), alert["type"], os.environ["SERVICE_NAME_LOWERCASE"])
     url_post = "{}/api/alerts/alert/{}".format(env("KIBANA_URL"), alert_id)
     attempts = 0
