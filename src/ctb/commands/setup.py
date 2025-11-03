@@ -277,43 +277,43 @@ def run_setup_gke(dev=False):
     #         sys.stdout.write(".")
     #         sys.stdout.flush()
 
-    # Ensure ad data is indexed in Elasticsearch
-    print("")
-    print("Checking if data exists in Elasticsearch ads cluster...")
-    response = requests.get(
-        url="{}/ads/_search".format(es_ads_url),
-        auth=("advertservice", "advertservice"),
-        timeout=30
-    )
-    if response.json().get("hits", {}).get("total", {}).get("value") != 7:
-        # Load ad data into Elasticsearch
-        print("...ad data does not exist.")
-        print("")
-        print("Indexing ad data...")
-        payload = utils.load_file(os.path.join(env("BASEDIR"), "elasticsearch", "bulk-ads.ndjson"))
-        response = requests.post(
-            url="{}/_bulk".format(es_ads_url),
-            params={ "refresh": "true" },
-            auth=("advertservice", "advertservice"),
-            headers={ "Content-Type": "application/json" },
-            data=payload,
-            timeout=30
-        )
-        if response.json().get("errors") is False:
-            print("...success.")
-        else:
-            print("...failure.")
-            if response.status_code in range(400, 499):
-                raise Exception(response.content)
-            else:
-                print(response.content)
-    else:
-        print("...exists.")
-
-    # Start the stable scenario
-    print("")
-    print("Deploying the stable scenario on GKE.")
-    ctb.commands.start.run("stable", quiet=True)
+    # # Ensure ad data is indexed in Elasticsearch
+    # print("")
+    # print("Checking if data exists in Elasticsearch ads cluster...")
+    # response = requests.get(
+    #     url="{}/ads/_search".format(es_ads_url),
+    #     auth=("advertservice", "advertservice"),
+    #     timeout=30
+    # )
+    # if response.json().get("hits", {}).get("total", {}).get("value") != 7:
+    #     # Load ad data into Elasticsearch
+    #     print("...ad data does not exist.")
+    #     print("")
+    #     print("Indexing ad data...")
+    #     payload = utils.load_file(os.path.join(env("BASEDIR"), "elasticsearch", "bulk-ads.ndjson"))
+    #     response = requests.post(
+    #         url="{}/_bulk".format(es_ads_url),
+    #         params={ "refresh": "true" },
+    #         auth=("advertservice", "advertservice"),
+    #         headers={ "Content-Type": "application/json" },
+    #         data=payload,
+    #         timeout=30
+    #     )
+    #     if response.json().get("errors") is False:
+    #         print("...success.")
+    #     else:
+    #         print("...failure.")
+    #         if response.status_code in range(400, 499):
+    #             raise Exception(response.content)
+    #         else:
+    #             print(response.content)
+    # else:
+    #     print("...exists.")
+    #
+    # # Start the stable scenario
+    # print("")
+    # print("Deploying the stable scenario on GKE.")
+    # ctb.commands.start.run("stable", quiet=True)
 
     print("")
     print("Finished setting up GKE.")
